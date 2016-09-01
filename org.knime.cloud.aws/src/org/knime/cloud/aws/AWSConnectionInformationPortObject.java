@@ -51,7 +51,8 @@ package org.knime.cloud.aws;
 import javax.swing.JComponent;
 
 import org.knime.base.filehandling.remote.connectioninformation.port.ConnectionInformationPortObject;
-import org.knime.base.filehandling.remote.connectioninformation.port.ConnectionInformationPortObjectSpec;
+import org.knime.cloud.core.util.port.CloudConnectionInformation;
+import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.node.port.PortType;
 
 /**
@@ -88,7 +89,7 @@ public class AWSConnectionInformationPortObject extends ConnectionInformationPor
      * @param connectionInformationPOS The spec wrapping the connection
      *            information.
      */
-    public AWSConnectionInformationPortObject(final ConnectionInformationPortObjectSpec connectionInformationPOS) {
+    public AWSConnectionInformationPortObject(final CloudConnectionInformationPortObjectSpec connectionInformationPOS) {
         super(connectionInformationPOS);
     }
 
@@ -97,7 +98,7 @@ public class AWSConnectionInformationPortObject extends ConnectionInformationPor
      */
     @Override
     public JComponent[] getViews() {
-        return new JComponent[] {new AWSConnectionInformationView(getConnectionInformation())};
+        return new JComponent[] {new AWSConnectionInformationView((CloudConnectionInformation)getConnectionInformation())};
     }
 
 }
