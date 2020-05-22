@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature id="org.knime.features.cloud.aws.dynamodb" version="0.0.0">
+       <category name="knime-aws" />
+   </feature>   
+   <feature id="org.knime.features.cloud.aws.dynamodb.source" version="0.0.0">
+       <category name="knime-aws" />
+   </feature>
+
+   <category-def name="knime-aws" label="Build artifacts from knime-aws">
+       <description>Build artifacts from knime-aws</description>
+   </category-def>
+</site>
