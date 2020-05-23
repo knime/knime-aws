@@ -15,7 +15,7 @@ properties([
 
 try {
     // provide the name of the update site project
-    knimetools.defaultTychoBuild('org.knime.update.ap-repository-template')
+    knimetools.defaultTychoBuild('org.knime.update.aws')
 
     // Specifying configurations is optional. If omitted, the default configurations will be used
     // (see jenkins-pipeline-libraries/vars/workflowTests.groovy).
