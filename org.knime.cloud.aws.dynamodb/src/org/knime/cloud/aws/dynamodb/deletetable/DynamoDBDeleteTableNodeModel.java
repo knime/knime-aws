@@ -77,8 +77,8 @@ final class DynamoDBDeleteTableNodeModel extends NodeModel {
 
     /** Exponential backoff when waiting for table to become active is 2^ntries * EXP_BACKOFF_FACTOR. **/
     private static final int EXP_BACKOFF_FACTOR = 100;
-    
-    private DynamoDBDeleteTableSettings m_settings = new DynamoDBDeleteTableSettings();
+
+    private final DynamoDBDeleteTableSettings m_settings = new DynamoDBDeleteTableSettings();
 
     /**
      * Default Constructor.
@@ -94,20 +94,20 @@ final class DynamoDBDeleteTableNodeModel extends NodeModel {
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         return new PortObjectSpec[0];
     }
-    
+
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        
-        CloudConnectionInformation conInfo = inObjects[0] == null
+
+        final CloudConnectionInformation conInfo = inObjects[0] == null
                 ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
-        
-        DeleteTableRequest dtr = DeleteTableRequest.builder().tableName(m_settings.getTableName()).build();
+
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
+
+        final DeleteTableRequest dtr = DeleteTableRequest.builder().tableName(m_settings.getTableName()).build();
         DeleteTableResponse response;
         try {
             response = ddb.deleteTable(dtr);
-        } catch (ResourceNotFoundException e) {
+        } catch (final ResourceNotFoundException e) {
             throw new InvalidSettingsException(
                     String.format("The given table \"%s\" does not exist.", m_settings.getTableName()), e);
         }
@@ -121,13 +121,13 @@ final class DynamoDBDeleteTableNodeModel extends NodeModel {
                         d.tableName(), d.tableStatus()));
                 // exponential backoff until table is active
                 Thread.sleep((long)Math.pow(2, retry++) * EXP_BACKOFF_FACTOR);
-                descr = DynamoDBUtil.describeTable(m_settings, false);
+                descr = DynamoDBUtil.describeTable(m_settings, conInfo, false);
             }
         }
-        
+
         return new PortObject[0];
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -157,7 +157,7 @@ final class DynamoDBDeleteTableNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBDeleteTableSettings s = new DynamoDBDeleteTableSettings();
+        final DynamoDBDeleteTableSettings s = new DynamoDBDeleteTableSettings();
         s.loadSettings(settings);
     }
 

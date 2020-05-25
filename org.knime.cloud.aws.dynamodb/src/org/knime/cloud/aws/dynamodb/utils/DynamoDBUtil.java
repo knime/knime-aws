@@ -416,7 +416,7 @@ public final class DynamoDBUtil {
      * @param limit the maximum number of table names to retrieve
      * @return a list of table names
      */
-    public static List<String> getTableNames(final Region region, final String endpoint,
+	public static List<String> getTableNames(final Region region, final String endpoint,
             final String accessKey, final String secretKey, final int limit) {
     	final AwsCredentialsProvider credentialProvider;
     	if (accessKey != null) {
@@ -438,11 +438,45 @@ public final class DynamoDBUtil {
 	/**
      * Queries a DynamoDB instance for a table description.
      * @param tblSettings the table settings containing the info to identify the table
+	 * @param con the connection information or <code>null</code> if not available
      * @return a table description including key schema information
      * @throws InvalidSettingsException when the request was not successful
      * @throws ResourceNotFoundException when the table does not exist
      */
-    public static TableDescription describeTable(final DynamoDBTableSettings tblSettings)
+	public static TableDescription describeTable(final DynamoDBTableSettings tblSettings,
+			final CloudConnectionInformation con) throws InvalidSettingsException {
+		if (con != null) {
+			return describeTable(tblSettings.getTableName(), con);
+		}
+		return describeTable(tblSettings);
+	}
+
+	/**
+     * Queries a DynamoDB instance for a table description.
+     * @param tblSettings the table settings containing the info to identify the table
+	 * @param con the connection information or <code>null</code> if not available
+     * @param throwOnNotFound if true, an exception is thrown if the table does not exist. Otherwise null is returned.
+     * @return a table description including key schema information
+     * @throws InvalidSettingsException when the request was not successful
+     * @throws ResourceNotFoundException when the table does not exist
+     */
+	public static TableDescription describeTable(final DynamoDBTableSettings tblSettings,
+			final CloudConnectionInformation con, final boolean throwOnNotFound)
+					throws InvalidSettingsException {
+		if (con != null) {
+			return describeTable(tblSettings.getTableName(), con, throwOnNotFound);
+		}
+		return describeTable(tblSettings, throwOnNotFound);
+	}
+
+	/**
+     * Queries a DynamoDB instance for a table description.
+     * @param tblSettings the table settings containing the info to identify the table
+     * @return a table description including key schema information
+     * @throws InvalidSettingsException when the request was not successful
+     * @throws ResourceNotFoundException when the table does not exist
+     */
+    private static TableDescription describeTable(final DynamoDBTableSettings tblSettings)
             throws InvalidSettingsException {
         return describeTable(tblSettings, true);
     }
@@ -455,7 +489,7 @@ public final class DynamoDBUtil {
      * @throws InvalidSettingsException when the request was not successful
      * @throws ResourceNotFoundException when the table does not exist and {@code throwOnNotFound} is true
      */
-    public static TableDescription describeTable(final DynamoDBTableSettings tblSettings, final boolean throwOnNotFound)
+    private static TableDescription describeTable(final DynamoDBTableSettings tblSettings, final boolean throwOnNotFound)
             throws InvalidSettingsException {
         return describeTable(tblSettings.getTableName(), tblSettings.getRegion(),
                 tblSettings.getEndpoint(), tblSettings.getAccessKey(), tblSettings.getSecretKey(), throwOnNotFound);
@@ -472,7 +506,7 @@ public final class DynamoDBUtil {
 	 * @throws InvalidSettingsException when the request was not successful
 	 * @throws ResourceNotFoundException when the table does not exist
 	 */
-	public static TableDescription describeTable(final String tableName, final Region region, final String endpoint,
+    public static TableDescription describeTable(final String tableName, final Region region, final String endpoint,
 	        final String accessKey, final String secretKey) throws InvalidSettingsException {
 	    return describeTable(tableName, region, endpoint, accessKey, secretKey, true);
 	}
@@ -489,7 +523,7 @@ public final class DynamoDBUtil {
 	 * @throws InvalidSettingsException when the request was not successful
 	 * @throws ResourceNotFoundException when the table does not exist and {@code throwOnNotFound} is true
 	 */
-	public static TableDescription describeTable(final String tableName, final Region region, final String endpoint,
+    private static TableDescription describeTable(final String tableName, final Region region, final String endpoint,
 	        final String accessKey, final String secretKey, final boolean throwOnNotFound)
 	                throws InvalidSettingsException {
 

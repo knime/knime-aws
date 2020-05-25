@@ -108,8 +108,8 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
 
     /** Exponential backoff when waiting for table to become active is 2^ntries * EXP_BACKOFF_FACTOR. **/
     private static final int EXP_BACKOFF_FACTOR = 100;
-    
-    private DynamoDBCreateTableSettings m_settings = new DynamoDBCreateTableSettings();
+
+    private final DynamoDBCreateTableSettings m_settings = new DynamoDBCreateTableSettings();
 
     /**
      * Default Constructor.
@@ -125,11 +125,11 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         return new PortObjectSpec[0];
     }
-    
+
     private Projection getProjectionFromIndex(final IndexSettings idx) {
-        software.amazon.awssdk.services.dynamodb.model.Projection.Builder proj
+        final software.amazon.awssdk.services.dynamodb.model.Projection.Builder proj
             = Projection.builder().projectionType(idx.getProjectionType());
-    
+
         if (idx.getProjectionType() == ProjectionType.INCLUDE) {
             proj.nonKeyAttributes(
                     idx.getProjection().stream()
@@ -140,27 +140,27 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
 
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        
-        CloudConnectionInformation conInfo = inObjects[0] == null
+
+        final CloudConnectionInformation conInfo = inObjects[0] == null
                 ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
-        
-        Set<String> coveredAttrs = new HashSet<>();
-        List<AttributeDefinition> attrs = new ArrayList<>();
-        KeySchemaElement[] keys = new KeySchemaElement[m_settings.hasRangeKey() ? 2 : 1];
-        
+
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
+
+        final Set<String> coveredAttrs = new HashSet<>();
+        final List<AttributeDefinition> attrs = new ArrayList<>();
+        final KeySchemaElement[] keys = new KeySchemaElement[m_settings.hasRangeKey() ? 2 : 1];
+
         attrs.add(AttributeDefinition.builder()
                     .attributeName(m_settings.getHashKeyName())
                     .attributeType(m_settings.getHashKeyType())
                     .build());
         coveredAttrs.add(m_settings.getHashKeyName());
-        
+
         keys[0] = KeySchemaElement.builder()
                 .attributeName(m_settings.getHashKeyName())
                 .keyType(KeyType.HASH)
                 .build();
-        
+
         if (m_settings.hasRangeKey()) {
             attrs.add(AttributeDefinition.builder()
                     .attributeName(m_settings.getRangeKeyName())
@@ -172,9 +172,9 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
                     .keyType(KeyType.RANGE)
                     .build();
         }
-        
-        Tag[] tags = m_settings.getTags().toArray(new Tag[0]);
-        Builder builder = CreateTableRequest.builder()
+
+        final Tag[] tags = m_settings.getTags().toArray(new Tag[0]);
+        final Builder builder = CreateTableRequest.builder()
         .tableName(m_settings.getTableName())
         .keySchema(keys)
         .tags(tags)
@@ -185,12 +185,12 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
                     .readCapacityUnits((long)m_settings.getReadUnits())
                     .writeCapacityUnits((long)m_settings.getWriteUnits()).build());
         }
-        
-        List<GlobalSecondaryIndex> globalIndexes = new ArrayList<>();
-        List<LocalSecondaryIndex> localIndexes = new ArrayList<>();
-        
+
+        final List<GlobalSecondaryIndex> globalIndexes = new ArrayList<>();
+        final List<LocalSecondaryIndex> localIndexes = new ArrayList<>();
+
         createIndexes(coveredAttrs, attrs, globalIndexes, localIndexes);
-        
+
         if (localIndexes.size() > 0) {
             builder.localSecondaryIndexes(localIndexes);
         }
@@ -210,9 +210,9 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
                     .streamViewType(m_settings.getStreamViewType())
                     .build());
         }
-        
-        CreateTableRequest ctr = builder.attributeDefinitions(attrs).build();
-        CreateTableResponse response = ddb.createTable(ctr);
+
+        final CreateTableRequest ctr = builder.attributeDefinitions(attrs).build();
+        final CreateTableResponse response = ddb.createTable(ctr);
         int retry = 0;
         if (m_settings.isBlockUntilActive()) {
             TableDescription descr = response.tableDescription();
@@ -223,18 +223,18 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
                         d.tableName(), d.tableStatus()));
                 // exponential backoff until table is active
                 Thread.sleep((long)Math.pow(2, retry++) * EXP_BACKOFF_FACTOR);
-                descr = DynamoDBUtil.describeTable(m_settings);
+                descr = DynamoDBUtil.describeTable(m_settings, conInfo);
             }
         }
-        
+
         return new PortObject[0];
     }
 
     private void createIndexes(final Set<String> coveredAttrs, final List<AttributeDefinition> attrs,
             final List<GlobalSecondaryIndex> globalIndexes, final List<LocalSecondaryIndex> localIndexes) {
-        for (IndexSettings idx : m_settings.getIndexes()) {
+        for (final IndexSettings idx : m_settings.getIndexes()) {
             if (idx.getType() == IndexType.GLOBAL) {
-                KeySchemaElement[] idxKeys = new KeySchemaElement[idx.hasRangeKey() ? 2 : 1];
+                final KeySchemaElement[] idxKeys = new KeySchemaElement[idx.hasRangeKey() ? 2 : 1];
                 idxKeys[0] = KeySchemaElement.builder()
                         .attributeName(idx.getHashKeyName())
                         .keyType(KeyType.HASH)
@@ -246,7 +246,7 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
                             .build());
                     coveredAttrs.add(idx.getHashKeyName());
                 }
-                
+
                 if (idx.hasRangeKey()) {
                     idxKeys[1] = KeySchemaElement.builder()
                                  .attributeName(idx.getRangeKeyName())
@@ -260,30 +260,30 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
                         coveredAttrs.add(idx.getRangeKeyName());
                     }
                 }
-                
-                ProvisionedThroughput pt = ProvisionedThroughput.builder()
+
+                final ProvisionedThroughput pt = ProvisionedThroughput.builder()
                 .readCapacityUnits((long)idx.getReadUnits())
                 .writeCapacityUnits((long)idx.getWriteUnits())
                 .build();
-                
-                software.amazon.awssdk.services.dynamodb.model.GlobalSecondaryIndex.Builder gsiBuilder
+
+                final software.amazon.awssdk.services.dynamodb.model.GlobalSecondaryIndex.Builder gsiBuilder
                     = GlobalSecondaryIndex.builder()
                     .indexName(idx.getName())
                     .projection(getProjectionFromIndex(idx))
                     .keySchema(idxKeys);
-                
+
                 if (m_settings.getBillingMode() == BillingMode.PROVISIONED) {
                     gsiBuilder.provisionedThroughput(pt);
                 }
                 globalIndexes.add(gsiBuilder.build());
             } else {
                 // A secondary index has the same hash key as the parent table
-                KeySchemaElement hKey = KeySchemaElement.builder()
+                final KeySchemaElement hKey = KeySchemaElement.builder()
                         .attributeName(m_settings.getHashKeyName())
                         .keyType(KeyType.HASH)
                         .build();
-                
-                KeySchemaElement rKey = KeySchemaElement.builder()
+
+                final KeySchemaElement rKey = KeySchemaElement.builder()
                         .attributeName(idx.getRangeKeyName())
                         .keyType(KeyType.RANGE)
                         .build();
@@ -294,7 +294,7 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
                             .build());
                     coveredAttrs.add(idx.getRangeKeyName());
                 }
-                
+
                 localIndexes.add(
                     LocalSecondaryIndex.builder()
                     .indexName(idx.getName())
@@ -304,7 +304,7 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
             }
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -334,14 +334,14 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBCreateTableSettings s = new DynamoDBCreateTableSettings();
+        final DynamoDBCreateTableSettings s = new DynamoDBCreateTableSettings();
         s.loadSettings(settings);
-        
+
         if (StringUtils.isBlank(s.getHashKeyName())) {
             throw new InvalidSettingsException(HASH_KEY_EMPTY_ERROR);
         }
-        
-        Map<String, ScalarAttributeType> types = new HashMap<>();
+
+        final Map<String, ScalarAttributeType> types = new HashMap<>();
         types.put(s.getHashKeyName(), s.getHashKeyType());
         if (s.hasRangeKey()) {
             if (StringUtils.isBlank(s.getRangeKeyName())) {
@@ -352,16 +352,16 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
             }
             types.put(s.getRangeKeyName(), s.getRangeKeyType());
         }
-        
+
         // Check if attributes with same name and different types are entered as indexes
-        for (IndexSettings idx : s.getIndexes()) {
+        for (final IndexSettings idx : s.getIndexes()) {
             if (StringUtils.isBlank(idx.getName())) {
                 throw new InvalidSettingsException("An index must not have an empty name");
             }
             if (idx.getType() == IndexType.GLOBAL && StringUtils.isBlank(idx.getHashKeyName())) {
                 throw new InvalidSettingsException(HASH_KEY_EMPTY_ERROR);
             }
-            ScalarAttributeType existingHash = types.get(idx.getHashKeyName());
+            final ScalarAttributeType existingHash = types.get(idx.getHashKeyName());
             if (existingHash != null && existingHash != idx.getHashKeyType()) {
                 throw new InvalidSettingsException(String.format("Index %s defines a hash key named %s with type %s "
                         + "but an attribute with that name and type %s was already registered",
@@ -377,7 +377,7 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
                 if (idx.getRangeKeyName().equals(idx.getHashKeyName())) {
                     throw new InvalidSettingsException(HASH_RANGE_SAME_ATTR_ERROR);
                 }
-                ScalarAttributeType existingRange = types.get(idx.getRangeKeyName());
+                final ScalarAttributeType existingRange = types.get(idx.getRangeKeyName());
                 if (existingRange != null && existingRange != idx.getRangeKeyType()) {
                     throw new InvalidSettingsException(String.format("Index %s defines a range key named %s"
                             + " with type %s but an attribute with that name and type %s was already registered",
