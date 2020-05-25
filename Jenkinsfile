@@ -44,7 +44,6 @@ try {
         // this is optional and only needs to be provided if non-default configurations are used, see above
         configurations: testConfigurations
     )
-*/
 
     stage('Sonarqube analysis') {
         env.lastStage = env.STAGE_NAME
@@ -53,6 +52,7 @@ try {
         // In case you don't have any workflow tests but still want a Sonarqube analysis, pass an empty list, i.e. [].
         workflowTests.runSonar(testConfigurations)
     }
+*/
 } catch (ex) {
     currentBuild.result = 'FAILURE'
     throw ex
