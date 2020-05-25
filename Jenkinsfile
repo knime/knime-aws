@@ -20,7 +20,8 @@ try {
     // Specifying configurations is optional. If omitted, the default configurations will be used
     // (see jenkins-pipeline-libraries/vars/workflowTests.groovy).
     // In almost all cases you can *remove* this defintion.
-    def testConfigurations = [
+/*
+	def testConfigurations = [
         "ubuntu18.04 && python3",
         "windows && python3"
     ]
@@ -43,6 +44,7 @@ try {
         // this is optional and only needs to be provided if non-default configurations are used, see above
         configurations: testConfigurations
     )
+*/
 
     stage('Sonarqube analysis') {
         env.lastStage = env.STAGE_NAME
