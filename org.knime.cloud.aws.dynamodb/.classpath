@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry exported="true" kind="lib" path="lib/aws-query-protocol-2.13.23.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/sts-2.13.23.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jackson-annotations-2.9.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jackson-core-2.9.8.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jackson-databind-2.9.8.jar"/>
