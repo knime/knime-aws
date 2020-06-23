@@ -52,10 +52,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import org.knime.cloud.core.util.port.CloudConnectionInformation;
+import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataTableSpecCreator;
 import org.knime.core.data.DataType;
+import org.knime.core.node.NotConfigurableException;
+import org.knime.core.node.port.PortObjectSpec;
 
 /**
  * Helper methods for KNIME stuff, like creating table specs.
@@ -79,4 +83,18 @@ public final class KNIMEUtil {
         }
         return creator.createSpec();
     }
+
+	/**
+	 * @param specs {@link PortObjectSpec}s where the first spec should be a
+	 * {@link CloudConnectionInformationPortObjectSpec}
+	 * @return the {@link CloudConnectionInformation}
+	 * @throws NotConfigurableException if the spec does not contain a {@link CloudConnectionInformationPortObjectSpec}
+	 */
+	public static CloudConnectionInformation getConnectionInformationInDialog(final PortObjectSpec[] specs)
+			throws NotConfigurableException {
+		if (specs[0] instanceof CloudConnectionInformationPortObjectSpec) {
+			return ((CloudConnectionInformationPortObjectSpec)specs[0]).getConnectionInformation();
+		}
+		throw new NotConfigurableException("No Amazon Credentials available");
+	}
 }

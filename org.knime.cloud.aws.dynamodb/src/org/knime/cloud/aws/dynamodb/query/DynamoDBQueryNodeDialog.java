@@ -64,14 +64,13 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBFilterAndProjectPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBTablePanel;
 import org.knime.cloud.aws.dynamodb.ui.EnumComboBox;
 import org.knime.cloud.aws.dynamodb.ui.indexes.IndexSelectionPanel;
 import org.knime.cloud.aws.dynamodb.utils.DynamoDBUtil;
+import org.knime.cloud.aws.dynamodb.utils.KNIMEUtil;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeSettingsRO;
@@ -97,36 +96,34 @@ import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 final class DynamoDBQueryNodeDialog extends NodeDialogPane {
 
     private static final String[] OPERATORS = new String[] {"=", "<", "<=", ">", ">=", "BETWEEN"};
-    
-    private DynamoDBQuerySettings m_settings = new DynamoDBQuerySettings();
 
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
-    
+    private final DynamoDBQuerySettings m_settings = new DynamoDBQuerySettings();
+
     private DynamoDBTablePanel m_table;
 
-    private DynamoDBFilterAndProjectPanel m_fp = new DynamoDBFilterAndProjectPanel();
-    
+    private final DynamoDBFilterAndProjectPanel m_fp = new DynamoDBFilterAndProjectPanel();
+
     private CloudConnectionInformation m_conCredentials = null;
-    
+
     // Query
-    private JTextField m_hashKeyName = new JTextField(10);
-    private JTextField m_hashKeyValue = new JTextField(10);
-    private EnumComboBox<ScalarAttributeType> m_hashKeyType
+    private final JTextField m_hashKeyName = new JTextField(10);
+    private final JTextField m_hashKeyValue = new JTextField(10);
+    private final EnumComboBox<ScalarAttributeType> m_hashKeyType
         = new EnumComboBox<>(ScalarAttributeType.values(), DynamoDBUtil.getHumanReadableKeyTypes());
-    private JTextField m_rangeKeyName = new JTextField(10);
-    private JTextField m_rangeKeyValue1 = new JTextField(10);
-    private JTextField m_rangeKeyValue2 = new JTextField(10);
-    private JComboBox<String> m_rangeKeyOperator = new JComboBox<>(OPERATORS);
-    private EnumComboBox<ScalarAttributeType> m_rangeKeyType
+    private final JTextField m_rangeKeyName = new JTextField(10);
+    private final JTextField m_rangeKeyValue1 = new JTextField(10);
+    private final JTextField m_rangeKeyValue2 = new JTextField(10);
+    private final JComboBox<String> m_rangeKeyOperator = new JComboBox<>(OPERATORS);
+    private final EnumComboBox<ScalarAttributeType> m_rangeKeyType
         = new EnumComboBox<>(ScalarAttributeType.values(), DynamoDBUtil.getHumanReadableKeyTypes());
-    private JLabel m_rangeAndLabel = new JLabel(" AND ");
-    private JCheckBox m_rangeKeyCheckbox = new JCheckBox("Range Key");
-    private JButton m_fetchInfoBtn = new JButton("Fetch info");
-    private JCheckBox m_consistentRead = new JCheckBox("Consistent Read");
-    private JSpinner m_limit = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
-    private JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
-    private JCheckBox m_scanForward = new JCheckBox("Forward Scan");
-    
+    private final JLabel m_rangeAndLabel = new JLabel(" AND ");
+    private final JCheckBox m_rangeKeyCheckbox = new JCheckBox("Range Key");
+    private final JButton m_fetchInfoBtn = new JButton("Fetch info");
+    private final JCheckBox m_consistentRead = new JCheckBox("Consistent Read");
+    private final JSpinner m_limit = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
+    private final JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
+    private final JCheckBox m_scanForward = new JCheckBox("Forward Scan");
+
     private IndexSelectionPanel m_indexSelectionPanel;
     /**
      * Creates a new instance of the dialog.
@@ -135,38 +132,34 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
         addTab("Standard Settings", createStdSettingsTab());
         addTab("Filter & Projection", createAdvancedSettingsTab());
     }
-    
+
     private JPanel createStdSettingsTab() {
-        JPanel stdSettings = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel stdSettings = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        m_credentials.addChangeListener(e -> toggleFetchButton());
-        stdSettings.add(m_credentials, c);
-        
-        c.gridy++;
+
         m_table = new DynamoDBTablePanel(
                 createFlowVariableModel(DynamoDBTableSettings.CFG_TABLE_NAME, Type.STRING),
                 this::getTableNames);
         m_table.addChangeListener(e -> toggleFetchButton());
         stdSettings.add(m_table, c);
-        
+
         c.gridy++;
         stdSettings.add(createQueryPanel(), c);
-        
+
         c.gridy++;
         stdSettings.add(m_flowVars, c);
-        
+
         return stdSettings;
     }
-    
+
     private JPanel createAdvancedSettingsTab() {
-        JPanel advSettings = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel advSettings = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
@@ -177,55 +170,55 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
     }
 
     private JPanel createQueryPanel() {
-        JPanel kcPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints kc = new GridBagConstraints();
+        final JPanel kcPanel = new JPanel(new GridBagLayout());
+        final GridBagConstraints kc = new GridBagConstraints();
         kc.insets = new Insets(2, 2, 2, 2);
         kc.gridx = 0;
         kc.gridy = 0;
         kc.weightx = 1;
         kc.anchor = GridBagConstraints.WEST;
-        
+
         m_indexSelectionPanel = new IndexSelectionPanel(this::getIndexNames);
         kcPanel.add(m_indexSelectionPanel, kc);
-        
+
         kc.gridy++;
         kcPanel.add(new JLabel("Hash Key"), kc);
-        
+
         kc.gridy++;
-        JPanel hash = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        final JPanel hash = new JPanel(new FlowLayout(FlowLayout.LEFT));
         hash.add(m_hashKeyName);
         hash.add(m_hashKeyType);
         hash.add(new JLabel("="));
         hash.add(m_hashKeyValue);
         hash.add(m_fetchInfoBtn);
         kcPanel.add(hash, kc);
-        
+
         m_fetchInfoBtn.addActionListener(e -> fetchInfo());
 
         kc.gridy++;
         kcPanel.add(m_rangeKeyCheckbox, kc);
 
-        JPanel range = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        final JPanel range = new JPanel(new FlowLayout(FlowLayout.LEFT));
         range.add(m_rangeKeyName);
         range.add(m_rangeKeyType);
         range.add(m_rangeKeyOperator);
         range.add(m_rangeKeyValue1);
         range.add(m_rangeAndLabel);
         range.add(m_rangeKeyValue2);
-        
+
         kc.gridy++;
         kcPanel.add(range, kc);
-        
+
         kc.gridy++;
-        JPanel limit = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        final JPanel limit = new JPanel(new FlowLayout(FlowLayout.LEFT));
         limit.add(new JLabel("Limit (0 = all)"));
         limit.add(m_limit);
         kcPanel.add(limit, kc);
-        
+
         kc.weightx = 1;
         kc.gridy++;
         kcPanel.add(m_scanForward, kc);
-        
+
         kc.gridy++;
         kcPanel.add(m_consistentRead, kc);
 
@@ -236,54 +229,37 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
 
         return kcPanel;
     }
-    
+
     private List<String> getIndexNames() {
         try {
-            TableDescription td;
-            if (m_conCredentials != null) {
-                td = DynamoDBUtil.describeTable(m_table.getTableName(), m_conCredentials);
-                
-            } else {
-                td = DynamoDBUtil.describeTable(m_table.getTableName(), m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey());
-            }
-            List<GlobalSecondaryIndexDescription> gi = td.globalSecondaryIndexes();
-            List<LocalSecondaryIndexDescription> li = td.localSecondaryIndexes();
-            List<String> indexNames = gi.stream().map(g -> g.indexName()).collect(Collectors.toList());
-            indexNames.addAll(li.stream().map(g -> g.indexName()).collect(Collectors.toList()));
+            final TableDescription td = DynamoDBUtil.describeTable(m_table.getTableName(), m_conCredentials);
+            final List<GlobalSecondaryIndexDescription> gi = td.globalSecondaryIndexes();
+            final List<LocalSecondaryIndexDescription> li = td.localSecondaryIndexes();
+            final List<String> indexNames =
+            		gi.stream().map(GlobalSecondaryIndexDescription::indexName).collect(Collectors.toList());
+            indexNames.addAll(li.stream().map(LocalSecondaryIndexDescription::indexName).collect(Collectors.toList()));
             return indexNames;
-        } catch (Exception e1) {
+        } catch (final Exception e1) {
             return null;
         }
     }
-    
+
     private List<String> getTableNames() {
         try {
-            if (m_conCredentials != null) {
-                return DynamoDBUtil.getTableNames(m_conCredentials, 20);
-            } else {
-                return DynamoDBUtil.getTableNames(m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey(), 20);
-            }
-        } catch (Exception e1) {
+            return DynamoDBUtil.getTableNames(m_conCredentials, 20);
+        } catch (final Exception e1) {
             return null;
         }
     }
-    
+
     private void fetchInfo() {
-        boolean rangeKeyEnabled = m_rangeKeyName.isEnabled();
+        final boolean rangeKeyEnabled = m_rangeKeyName.isEnabled();
         setQueryFieldsEnabled(false);
         new Thread(() -> {
             TableDescription res = null;
             try {
-                if (m_conCredentials != null) {
-                    res = DynamoDBUtil.describeTable(m_table.getTableName(), m_conCredentials);
-                } else {
-                    res = DynamoDBUtil.describeTable(
-                            m_table.getTableName(), m_table.getRegion(),
-                            m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey());
-                }
-            } catch (Exception e1) {
+                res = DynamoDBUtil.describeTable(m_table.getTableName(), m_conCredentials);
+            } catch (final Exception e1) {
                 SwingUtilities.invokeLater(() -> {
                     JOptionPane.showMessageDialog(
                             SwingUtilities.getWindowAncestor(m_fetchInfoBtn),
@@ -296,7 +272,7 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
                 String hashKeyName = null;
                 String rangeKeyName = null;
                 if (m_indexSelectionPanel.isUseIndex()) {
-                    for (KeySchemaElement key : table.keySchema()) {
+                    for (final KeySchemaElement key : table.keySchema()) {
                         if (key.keyType() == KeyType.HASH) {
                             m_hashKeyName.setText(key.attributeName());
                             hashKeyName = key.attributeName();
@@ -306,9 +282,9 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
                         }
                     }
                 } else {
-                    for (GlobalSecondaryIndexDescription gsid : table.globalSecondaryIndexes()) {
+                    for (final GlobalSecondaryIndexDescription gsid : table.globalSecondaryIndexes()) {
                         if (gsid.indexName().equals(m_indexSelectionPanel.getIndexName())) {
-                            for (KeySchemaElement key : gsid.keySchema()) {
+                            for (final KeySchemaElement key : gsid.keySchema()) {
                                 if (key.keyType() == KeyType.HASH) {
                                     m_hashKeyName.setText(key.attributeName());
                                     hashKeyName = key.attributeName();
@@ -320,9 +296,9 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
                             break;
                         }
                     }
-                    for (LocalSecondaryIndexDescription lsid : table.localSecondaryIndexes()) {
+                    for (final LocalSecondaryIndexDescription lsid : table.localSecondaryIndexes()) {
                         if (lsid.indexName().equals(m_indexSelectionPanel.getIndexName())) {
-                            for (KeySchemaElement key : lsid.keySchema()) {
+                            for (final KeySchemaElement key : lsid.keySchema()) {
                                 if (key.keyType() == KeyType.HASH) {
                                     m_hashKeyName.setText(key.attributeName());
                                     hashKeyName = key.attributeName();
@@ -336,7 +312,7 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
                     }
                 }
                 if (hashKeyName != null) {
-                    for (AttributeDefinition def : table.attributeDefinitions()) {
+                    for (final AttributeDefinition def : table.attributeDefinitions()) {
                         if (def.attributeName().equals(hashKeyName)) {
                             m_hashKeyType.setSelectedItemValue(def.attributeType());
                         } else if (def.attributeName().equals(rangeKeyName)) {
@@ -355,7 +331,7 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
             });
         }).start();
     }
-    
+
     private void setQueryFieldsEnabled(final boolean enabled) {
         m_hashKeyName.setEnabled(enabled);
         m_hashKeyType.setEnabled(enabled);
@@ -376,31 +352,25 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
         m_rangeAndLabel.setEnabled(enabled);
         m_rangeKeyValue2.setEnabled(enabled);
     }
-    
+
     private void toggleFetchButton() {
-        m_fetchInfoBtn.setEnabled(m_conCredentials != null
-                || m_credentials.hasValidCredentials() && m_table.getTableName().length() > 0);
+        m_fetchInfoBtn.setEnabled(m_conCredentials != null && m_table.getTableName().length() > 0);
     }
 
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
-        m_conCredentials = null;
-        if (specs[0] != null) {
-            m_conCredentials = (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation();
-        }
+    	m_conCredentials = KNIMEUtil.getConnectionInformationInDialog(specs);
         m_settings.loadSettingsForDialog(settings);
-        
+
         m_scanForward.setSelected(m_settings.scanIndexForward());
         m_limit.setValue(m_settings.getLimit());
         m_indexSelectionPanel.update(m_settings.getIndexName(), m_settings.getUseIndex());
-        m_credentials.updateFromSettings(m_settings);
         m_table.updateFromSettings(m_settings);
-        
+
         m_flowVars.setSelected(m_settings.publishConsumedCapUnits());
         m_consistentRead.setSelected(m_settings.isConsistentRead());
-        
+
         m_hashKeyName.setText(m_settings.getHashKeyName());
         m_hashKeyValue.setText(m_settings.getHashKeyValue());
         m_hashKeyType.setSelectedItemValue(m_settings.getHashKeyType());
@@ -414,12 +384,11 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
 
         m_fp.setFilterExpression(m_settings.getFilterExpr());
         m_fp.setProjectionExpression(m_settings.getProjectionExpr());
-        
+
         m_fp.updatePlaceholdersFromSettings(m_settings.getPlaceholderSettings());
-        
-        m_credentials.setCloudConnectionInfo(m_conCredentials);
+
         m_table.setRegionOverwrite(m_conCredentials == null ? null : Region.of(m_conCredentials.getHost()));
-        
+
         setBetweenVisible(m_settings.getRangeKeyOperator().equals("BETWEEN"));
         setRangeKeyEnabled(m_settings.isUseRangeKey());
         toggleFetchButton();
@@ -428,15 +397,14 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         m_settings.setPublishConsumedCapUnits(m_flowVars.isSelected());
-        
-        m_credentials.saveToSettings(m_settings);
+
         m_table.saveToSettings(m_settings);
 
         m_settings.setScanIndexForward(m_scanForward.isSelected());
         m_settings.setLimit((int)m_limit.getValue());
         m_settings.setUseIndex(m_indexSelectionPanel.isUseIndex());
         m_settings.setIndexName(m_indexSelectionPanel.getIndexName());
-        
+
         m_settings.setHashKeyName(m_hashKeyName.getText());
         m_settings.setHashKeyType(m_hashKeyType.getSelectedItemValue());
         m_settings.setHashKeyValue(m_hashKeyValue.getText());
@@ -450,9 +418,9 @@ final class DynamoDBQueryNodeDialog extends NodeDialogPane {
 
         m_settings.setFilterExpr(m_fp.getFilterExpression());
         m_settings.setProjectionExpr(m_fp.getProjectionExpression());
-        
+
         m_fp.savePlaceholdersToSettings(m_settings.getPlaceholderSettings());
-        
+
         m_settings.setConsistentRead(m_consistentRead.isSelected());
         m_settings.saveSettings(settings);
     }

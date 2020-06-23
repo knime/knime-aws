@@ -54,7 +54,6 @@ import java.awt.Insets;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -62,13 +61,12 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBFilterAndProjectPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBTablePanel;
 import org.knime.cloud.aws.dynamodb.ui.indexes.IndexSelectionPanel;
 import org.knime.cloud.aws.dynamodb.utils.DynamoDBUtil;
+import org.knime.cloud.aws.dynamodb.utils.KNIMEUtil;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeSettingsRO;
@@ -90,19 +88,18 @@ import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 final class DynamoDBScanNodeDialog extends NodeDialogPane {
 
     private CloudConnectionInformation m_conCredentials = null;
-    
-    private DynamoDBScanSettings m_settings = new DynamoDBScanSettings();
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
+
+    private final DynamoDBScanSettings m_settings = new DynamoDBScanSettings();
     private DynamoDBTablePanel m_table;
-    private DynamoDBFilterAndProjectPanel m_fp = new DynamoDBFilterAndProjectPanel();
+    private final DynamoDBFilterAndProjectPanel m_fp = new DynamoDBFilterAndProjectPanel();
 
     // Scan
-    private JCheckBox m_consistentRead = new JCheckBox("Consistent Read");
-    private JSpinner m_limit = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
-    private JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
-    
+    private final JCheckBox m_consistentRead = new JCheckBox("Consistent Read");
+    private final JSpinner m_limit = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
+    private final JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
+
     private IndexSelectionPanel m_indexSelectionPanel;
-    
+
     /**
      * Creates a new instance of the dialog.
      */
@@ -110,34 +107,31 @@ final class DynamoDBScanNodeDialog extends NodeDialogPane {
         addTab("Standard Settings", createStdSettingsTab());
         addTab("Filter & Projection", createAdvancedSettingsTab());
     }
-    
+
     private JPanel createStdSettingsTab() {
-        JPanel stdSettings = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel stdSettings = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        stdSettings.add(m_credentials, c);
-        
-        c.gridy++;
+
         m_table = new DynamoDBTablePanel(createFlowVariableModel(
                 DynamoDBTableSettings.CFG_TABLE_NAME, Type.STRING), this::getTableNames);
         stdSettings.add(m_table, c);
-        
+
         c.gridy++;
         stdSettings.add(createScanPanel(), c);
-        
+
         c.gridy++;
         stdSettings.add(m_flowVars, c);
         return stdSettings;
     }
-    
+
     private JPanel createAdvancedSettingsTab() {
-        JPanel advSettings = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel advSettings = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
@@ -148,18 +142,18 @@ final class DynamoDBScanNodeDialog extends NodeDialogPane {
     }
 
     private JPanel createScanPanel() {
-        JPanel scanPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints kc = new GridBagConstraints();
+        final JPanel scanPanel = new JPanel(new GridBagLayout());
+        final GridBagConstraints kc = new GridBagConstraints();
         kc.insets = new Insets(2, 2, 2, 2);
         kc.gridx = 0;
         kc.gridy = 0;
         kc.weightx = 1;
         kc.fill = GridBagConstraints.HORIZONTAL;
-        
+
         kc.gridwidth = 2;
         m_indexSelectionPanel = new IndexSelectionPanel(this::getIndexNames);
         scanPanel.add(m_indexSelectionPanel, kc);
-        
+
         kc.anchor = GridBagConstraints.WEST;
         kc.fill = GridBagConstraints.NONE;
         kc.gridwidth = 1;
@@ -167,84 +161,66 @@ final class DynamoDBScanNodeDialog extends NodeDialogPane {
         kc.gridy++;
         kc.weightx = 1;
         scanPanel.add(new JLabel("Limit (0 = all)"), kc);
-        
+
         kc.gridx++;
         kc.weightx = 0;
         scanPanel.add(m_limit, kc);
-        
+
         kc.gridx = 0;
         kc.gridy++;
         scanPanel.add(m_consistentRead, kc);
 
         return scanPanel;
     }
-    
+
     private List<String> getTableNames() {
         try {
-            if (m_conCredentials != null) {
-                return DynamoDBUtil.getTableNames(m_conCredentials, 20);
-            } else {
-                return DynamoDBUtil.getTableNames(m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey(), 20);
-            }
-        } catch (Exception e1) {
+            return DynamoDBUtil.getTableNames(m_conCredentials, 20);
+        } catch (final Exception e1) {
             return null;
         }
     }
-    
+
     private List<String> getIndexNames() {
         try {
-            TableDescription td;
-            if (m_conCredentials != null) {
-                td = DynamoDBUtil.describeTable(m_table.getTableName(), m_conCredentials);
-                
-            } else {
-                td = DynamoDBUtil.describeTable(m_table.getTableName(), m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey());
-            }
-            List<GlobalSecondaryIndexDescription> gi = td.globalSecondaryIndexes();
-            List<LocalSecondaryIndexDescription> li = td.localSecondaryIndexes();
-            List<String> indexNames = gi.stream().map(g -> g.indexName()).collect(Collectors.toList());
-            indexNames.addAll(li.stream().map(g -> g.indexName()).collect(Collectors.toList()));
+            final TableDescription td = DynamoDBUtil.describeTable(m_table.getTableName(), m_conCredentials);
+            final List<GlobalSecondaryIndexDescription> gi = td.globalSecondaryIndexes();
+            final List<LocalSecondaryIndexDescription> li = td.localSecondaryIndexes();
+            final List<String> indexNames =
+            		gi.stream().map(GlobalSecondaryIndexDescription::indexName).collect(Collectors.toList());
+            indexNames.addAll(li.stream().map(LocalSecondaryIndexDescription::indexName).collect(Collectors.toList()));
             return indexNames;
-        } catch (Exception e1) {
+        } catch (final Exception e1) {
             return null;
         }
     }
-    
+
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
         m_settings.loadSettingsForDialog(settings);
-        
+
         m_limit.setValue(m_settings.getLimit());
         m_indexSelectionPanel.update(m_settings.getIndexName(), m_settings.getUseIndex());
-        m_credentials.updateFromSettings(m_settings);
         m_table.updateFromSettings(m_settings);
         m_flowVars.setSelected(m_settings.publishConsumedCapUnits());
         m_fp.setFilterExpression(m_settings.getFilterExpr());
         m_fp.setProjectionExpression(m_settings.getProjectionExpr());
-        
+
         m_fp.updatePlaceholdersFromSettings(m_settings.getPlaceholderSettings());
-        
+
         m_consistentRead.setSelected(m_settings.isConsistentRead());
-        
-        m_conCredentials = null;
-        if (specs[0] != null) {
-            m_conCredentials = (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation();
-            m_credentials.setCloudConnectionInfo(m_conCredentials);
-        }
-        
+
+        m_conCredentials = KNIMEUtil.getConnectionInformationInDialog(specs);
+
         m_table.setRegionOverwrite(m_conCredentials == null ? null : Region.of(m_conCredentials.getHost()));
     }
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        
+
         m_settings.setPublishConsumedCapUnits(m_flowVars.isSelected());
-        
-        m_credentials.saveToSettings(m_settings);
+
         m_table.saveToSettings(m_settings);
 
         m_settings.setUseIndex(m_indexSelectionPanel.isUseIndex());
@@ -252,7 +228,7 @@ final class DynamoDBScanNodeDialog extends NodeDialogPane {
         m_settings.setIndexName(m_indexSelectionPanel.getIndexName());
         m_settings.setFilterExpr(m_fp.getFilterExpression());
         m_settings.setProjectionExpr(m_fp.getProjectionExpression());
-        
+
         m_fp.savePlaceholdersToSettings(m_settings.getPlaceholderSettings());
         m_settings.setConsistentRead(m_consistentRead.isSelected());
         m_settings.saveSettings(settings);

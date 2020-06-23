@@ -69,13 +69,12 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.table.DefaultTableModel;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
 import org.knime.cloud.aws.dynamodb.ui.AddEmptyRowTableModelListener;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBKeyColumnsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBTablePanel;
 import org.knime.cloud.aws.dynamodb.utils.DynamoDBUtil;
+import org.knime.cloud.aws.dynamodb.utils.KNIMEUtil;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
@@ -96,18 +95,17 @@ import software.amazon.awssdk.utils.StringUtils;
 final class DynamoDBBatchGetNodeDialog extends NodeDialogPane {
 
     private CloudConnectionInformation m_conCredentials = null;
-    
-    private DynamoDBBatchGetSettings m_settings = new DynamoDBBatchGetSettings();
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
+
+    private final DynamoDBBatchGetSettings m_settings = new DynamoDBBatchGetSettings();
     private DynamoDBTablePanel m_table;
-    private JSpinner m_batchSize = new JSpinner(new SpinnerNumberModel(100, 1, 100, 1));
-    private JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
-    private DynamoDBKeyColumnsPanel m_keys = new DynamoDBKeyColumnsPanel();
-    private JCheckBox m_consistentRead = new JCheckBox("Consistent Read");
-    
-    private JTextField m_projection = new JTextField();
-    private DefaultTableModel m_namesTblModel = new DefaultTableModel(0, 2);
-    
+    private final JSpinner m_batchSize = new JSpinner(new SpinnerNumberModel(100, 1, 100, 1));
+    private final JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
+    private final DynamoDBKeyColumnsPanel m_keys = new DynamoDBKeyColumnsPanel();
+    private final JCheckBox m_consistentRead = new JCheckBox("Consistent Read");
+
+    private final JTextField m_projection = new JTextField();
+    private final DefaultTableModel m_namesTblModel = new DefaultTableModel(0, 2);
+
     /**
      * Creates a new instance of the dialog.
      */
@@ -115,51 +113,51 @@ final class DynamoDBBatchGetNodeDialog extends NodeDialogPane {
         addTab("Standard Settings", createStdSettingsTab());
         addTab("Projection", createProjectionTab());
     }
-    
+
     private JPanel createProjectionTab() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 0;
         c.anchor = GridBagConstraints.WEST;
-        
+
         panel.add(new JLabel("Projection"), c);
-        
+
         c.gridx++;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
         panel.add(m_projection, c);
-        
+
         c.gridx = 0;
         c.gridy++;
         panel.add(new JLabel("Name Mapping"), c);
-        
+
         c.gridy++;
         c.gridx = 0;
         c.gridwidth = 2;
-        
+
         // Setup table for name placeholders
-        JTable namesTable = new JTable();
+        final JTable namesTable = new JTable();
         namesTable.setPreferredScrollableViewportSize(new Dimension(200, 200));
         m_namesTblModel.setColumnIdentifiers(new String[] {"Placeholder", "Name"});
         m_namesTblModel.addTableModelListener(new AddEmptyRowTableModelListener(m_namesTblModel));
         namesTable.setModel(m_namesTblModel);
 
-        JScrollPane leftScrollPane = new JScrollPane(namesTable);
+        final JScrollPane leftScrollPane = new JScrollPane(namesTable);
         leftScrollPane.setMaximumSize(new Dimension(100, 100));
         namesTable.setFillsViewportHeight(true);
         panel.add(leftScrollPane, c);
 
         c.gridy++;
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton removeNameRow = new JButton("-");
+        final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        final JButton removeNameRow = new JButton("-");
         // Let the user remove rows
         removeNameRow.addActionListener(e -> {
-            ListSelectionModel sm = namesTable.getSelectionModel();
-            int min = sm.getMinSelectionIndex();
-            int max = sm.getMaxSelectionIndex();
+            final ListSelectionModel sm = namesTable.getSelectionModel();
+            final int min = sm.getMinSelectionIndex();
+            final int max = sm.getMaxSelectionIndex();
             if (sm.getMinSelectionIndex() != -1) {
                 for (int i = max; i >= min; i--) {
                     m_namesTblModel.removeRow(i);
@@ -171,69 +169,61 @@ final class DynamoDBBatchGetNodeDialog extends NodeDialogPane {
         });
         buttonPanel.add(removeNameRow);
         panel.add(buttonPanel, c);
-        
+
         return panel;
     }
 
     private JPanel createStdSettingsTab() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        panel.add(m_credentials, c);
-        
-        c.gridy++;
+
         m_table = new DynamoDBTablePanel(createFlowVariableModel(DynamoDBTableSettings.CFG_TABLE_NAME, Type.STRING),
                 this::getTableNames);
         panel.add(m_table, c);
-        
+
         c.gridy++;
         panel.add(m_keys, c);
 
         c.gridy++;
         panel.add(createReadSettingsPanel(), c);
-        
+
         c.gridy++;
         panel.add(m_flowVars, c);
-        
+
         return panel;
     }
-    
+
 
     private JPanel createReadSettingsPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.WEST;
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
-        
+
         panel.add(new JLabel("Batch Size"), c);
-        
+
         c.gridx++;
         panel.add(m_batchSize, c);
-        
+
         c.gridx = 0;
         c.gridy++;
         panel.add(m_consistentRead, c);
-        
+
         return panel;
     }
-    
+
     private List<String> getTableNames() {
         try {
-            if (m_conCredentials != null) {
-                return DynamoDBUtil.getTableNames(m_conCredentials, 20);
-            } else {
-                return DynamoDBUtil.getTableNames(m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey(), 20);
-            }
-        } catch (Exception e1) {
+            return DynamoDBUtil.getTableNames(m_conCredentials, 20);
+        } catch (final Exception e1) {
             return null;
         }
     }
@@ -242,58 +232,51 @@ final class DynamoDBBatchGetNodeDialog extends NodeDialogPane {
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
         m_settings.loadSettingsForDialog(settings);
-        
-        m_credentials.updateFromSettings(m_settings);
+
         m_table.updateFromSettings(m_settings);
 
         m_flowVars.setSelected(m_settings.publishConsumedCapUnits());
         m_batchSize.setValue(m_settings.getBatchSize());
-        
+
         m_consistentRead.setSelected(m_settings.isConsistentRead());
-        
+
         m_keys.updateFromSettings((DataTableSpec)specs[1], m_settings.getKeyColumns());
-        
+
         m_projection.setText(m_settings.getProjectionExpression());
         m_namesTblModel.setRowCount(m_settings.getNames().isEmpty() ? 1 : 0);
-        for (Entry<String, String> e : m_settings.getNames().entrySet()) {
+        for (final Entry<String, String> e : m_settings.getNames().entrySet()) {
             if (m_namesTblModel.getRowCount() > 0) {
                 m_namesTblModel.insertRow(m_namesTblModel.getRowCount() - 1, new String[] {e.getKey(), e.getValue()});
             } else {
                 m_namesTblModel.addRow(new String[] {e.getKey(), e.getValue()});
             }
         }
-        
-        m_conCredentials = null;
-        if (specs[0] != null) {
-            m_conCredentials = (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation();
-            m_credentials.setCloudConnectionInfo(m_conCredentials);
-        }
-        
+
+        m_conCredentials = KNIMEUtil.getConnectionInformationInDialog(specs);
+
         m_table.setRegionOverwrite(m_conCredentials == null ? null : Region.of(m_conCredentials.getHost()));
     }
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        m_credentials.saveToSettings(m_settings);
         m_table.saveToSettings(m_settings);
-        
+
         m_settings.setConsistentRead(m_consistentRead.isSelected());
         m_settings.setPublishConsumedCapUnits(m_flowVars.isSelected());
         m_settings.setBatchSize((int)m_batchSize.getValue());
-        
+
         m_keys.saveToSettings(m_settings.getKeyColumns());
 
         m_settings.setProjectionExpression(m_projection.getText());
         m_settings.getNames().clear();
         for (int i = 0; i < m_namesTblModel.getRowCount(); i++) {
-            String name = (String)m_namesTblModel.getValueAt(i, 0);
-            String val = (String)m_namesTblModel.getValueAt(i, 1);
+            final String name = (String)m_namesTblModel.getValueAt(i, 0);
+            final String val = (String)m_namesTblModel.getValueAt(i, 1);
             if (!StringUtils.isBlank(name) && !StringUtils.isBlank(val)) {
                 m_settings.getNames().put(name, val);
             }
         }
-        
+
         m_settings.saveSettings(settings);
     }
 

@@ -56,11 +56,10 @@ import java.util.List;
 import javax.swing.JPanel;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBTablePanel;
 import org.knime.cloud.aws.dynamodb.utils.DynamoDBUtil;
+import org.knime.cloud.aws.dynamodb.utils.KNIMEUtil;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeSettingsRO;
@@ -79,71 +78,56 @@ import software.amazon.awssdk.regions.Region;
 final class DynamoDBDescribeTableNodeDialog extends NodeDialogPane {
 
     private CloudConnectionInformation m_conCredentials = null;
-    
-    private DynamoDBDescribeTableSettings m_settings = new DynamoDBDescribeTableSettings();
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
+
+    private final DynamoDBDescribeTableSettings m_settings = new DynamoDBDescribeTableSettings();
     private DynamoDBTablePanel m_table;
-    
+
     /**
      * Creates a new instance of the dialog.
      */
     DynamoDBDescribeTableNodeDialog() {
         addTab("Standard Settings", createStdSettingsTab());
     }
-    
+
     private JPanel createStdSettingsTab() {
-        JPanel stdSettings = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel stdSettings = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        stdSettings.add(m_credentials, c);
-        
-        c.gridy++;
+
         m_table = new DynamoDBTablePanel(createFlowVariableModel(DynamoDBTableSettings.CFG_TABLE_NAME, Type.STRING),
                 this::getTableNames);
         stdSettings.add(m_table, c);
-        
+
         return stdSettings;
     }
-    
+
     private List<String> getTableNames() {
         try {
-            if (m_conCredentials != null) {
-                return DynamoDBUtil.getTableNames(m_conCredentials, 20);
-            } else {
-                return DynamoDBUtil.getTableNames(m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey(), 20);
-            }
-        } catch (Exception e1) {
+            return DynamoDBUtil.getTableNames(m_conCredentials, 20);
+        } catch (final Exception e1) {
             return null;
         }
     }
-    
+
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
+
         m_settings.loadSettingsForDialog(settings);
         m_table.updateFromSettings(m_settings);
-        m_credentials.updateFromSettings(m_settings);
-        
-        m_conCredentials = null;
-        if (specs[0] != null) {
-            m_conCredentials = (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation();
-            m_credentials.setCloudConnectionInfo(m_conCredentials);
-        }
-        
+
+        m_conCredentials = KNIMEUtil.getConnectionInformationInDialog(specs);
+
         m_table.setRegionOverwrite(m_conCredentials == null ? null : Region.of(m_conCredentials.getHost()));
     }
 
-    @Override
+	@Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         m_table.saveToSettings(m_settings);
-        m_credentials.saveToSettings(m_settings);
         m_settings.saveSettings(settings);
     }
 }

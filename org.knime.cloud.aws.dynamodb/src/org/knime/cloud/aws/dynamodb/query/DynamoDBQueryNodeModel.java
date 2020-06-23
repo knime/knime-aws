@@ -90,40 +90,40 @@ final class DynamoDBQueryNodeModel extends NodeModel {
 
     private static final String HK_NAME_PLACEHOLDER = "#knimeHashKeyNameKNIME";
     private static final String HK_VALUE_PLACEHOLDER = ":knimeHashKeyValueKNIME";
-    
+
     private static final String RK_NAME_PLACEHOLDER = "#knimeRangeKeyNameKNIME";
     private static final String RK_VALUE1_PLACEHOLDER = ":knimeRangeKeyValueOneKNIME";
     private static final String RK_VALUE2_PLACEHOLDER = ":knimeRangeKeyValueTwoKNIME";
-    
+
     private static final String CAPACITY_UNITS_FLOW_VAR = "queryConsumedCapacityUnits";
-    
+
     private static final String OPERATOR_BETWEEN = "BETWEEN";
-    
-    private DynamoDBQuerySettings m_settings = new DynamoDBQuerySettings();
+
+    private final DynamoDBQuerySettings m_settings = new DynamoDBQuerySettings();
 
     /**
      * Default Constructor.
      */
     DynamoDBQueryNodeModel() {
-        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE_OPTIONAL},
-                new PortType[] {BufferedDataTable.TYPE});
+        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE},
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         // We can't know what fields we return
-        return new PortObjectSpec[] {null};
+    	return new PortObjectSpec[] {inSpecs[0], null};
     }
-    
+
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        
-        CloudConnectionInformation conInfo = inObjects[0] == null
+
+        final CloudConnectionInformation conInfo = inObjects[0] == null
                 ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
 
         // Build key condition expression for hash and range key
-        StringBuilder keyConditionBuilder = new StringBuilder();
+        final StringBuilder keyConditionBuilder = new StringBuilder();
         keyConditionBuilder.append(HK_NAME_PLACEHOLDER).append(" = ").append(HK_VALUE_PLACEHOLDER);
         if (m_settings.isUseRangeKey()) {
             keyConditionBuilder.append(" AND ").append(RK_NAME_PLACEHOLDER).append(" ");
@@ -133,20 +133,20 @@ final class DynamoDBQueryNodeModel extends NodeModel {
                 keyConditionBuilder.append(" AND ").append(RK_VALUE2_PLACEHOLDER);
             }
         }
-        
+
         // Setup maps for placeholders in the expressions. DynamoDB requires this for reserved keywords
         // and strange column names. We always use it to make sure no error occurs.
-        HashMap<String, String> names = new HashMap<>(m_settings.getPlaceholderSettings().getNames());
+        final HashMap<String, String> names = new HashMap<>(m_settings.getPlaceholderSettings().getNames());
         names.put(HK_NAME_PLACEHOLDER, m_settings.getHashKeyName());
-        
-        Map<String, AttributeValue> valueMap = new HashMap<>();
-        for (ValueMapping vm : m_settings.getPlaceholderSettings().getValues()) {
+
+        final Map<String, AttributeValue> valueMap = new HashMap<>();
+        for (final ValueMapping vm : m_settings.getPlaceholderSettings().getValues()) {
             valueMap.put(vm.getName(), vm.getAttributeValue());
         }
-        
+
         valueMap.put(HK_VALUE_PLACEHOLDER,
                 DynamoDBUtil.getKeyConditionAttrValue(m_settings.getHashKeyValue(), m_settings.getHashKeyType()));
-        
+
         if (m_settings.isUseRangeKey()) {
             names.put(RK_NAME_PLACEHOLDER, m_settings.getRangeKeyName());
             valueMap.put(RK_VALUE1_PLACEHOLDER, DynamoDBUtil.getKeyConditionAttrValue(m_settings.getRangeKeyValue1(),
@@ -156,7 +156,7 @@ final class DynamoDBQueryNodeModel extends NodeModel {
                         .getKeyConditionAttrValue(m_settings.getRangeKeyValue2(), m_settings.getRangeKeyType()));
             }
         }
-        
+
         // Setup the request according to the settings
         Builder builder = QueryRequest.builder()
             .tableName(m_settings.getTableName())
@@ -167,62 +167,62 @@ final class DynamoDBQueryNodeModel extends NodeModel {
             .keyConditionExpression(keyConditionBuilder.toString())
             .expressionAttributeNames(names)
             .expressionAttributeValues(valueMap);
-        
+
         if (m_settings.getFilterExpr().trim().length() > 0) {
             builder = builder.filterExpression(m_settings.getFilterExpr());
         }
         if (m_settings.getProjectionExpr().trim().length() > 0) {
             builder = builder.projectionExpression(m_settings.getProjectionExpr());
         }
-        
+
         if (m_settings.getUseIndex()) {
             builder.indexName(m_settings.getIndexName());
         }
         if (m_settings.getLimit() > 0) {
             builder.limit(m_settings.getLimit());
         }
-        
+
         QueryIterable pages;
         try {
             // Data returned by a single request is limited by DynamoDB, so we paginate
             pages = ddb.queryPaginator(builder.build());
-        } catch (ResourceNotFoundException e) {
-            String msg = m_settings.getUseIndex()
+        } catch (final ResourceNotFoundException e) {
+            final String msg = m_settings.getUseIndex()
                     ? String.format(NodeConstants.TABLE_OR_INDEX_MISSING_ERROR,
                             m_settings.getTableName(), m_settings.getIndexName())
                     : String.format(NodeConstants.TABLE_MISSING_ERROR, m_settings.getTableName());
             throw new InvalidSettingsException(msg, e);
         }
-        DynamicDataContainer dc = new DynamicDataContainer(ds -> exec.createDataContainer(ds));
-        
+        final DynamicDataContainer dc = new DynamicDataContainer(ds -> exec.createDataContainer(ds));
+
         long rowCount = 0;
         double consumedCap = 0.0;
         OUTER_LOOP:
-        for (QueryResponse response : pages) {
+        for (final QueryResponse response : pages) {
             if (m_settings.publishConsumedCapUnits()) {
                 consumedCap += response.consumedCapacity().capacityUnits();
             }
-            
-            for (Map<String, AttributeValue> item : response.items()) {
+
+            for (final Map<String, AttributeValue> item : response.items()) {
                 exec.checkCanceled();
                 if (m_settings.getLimit() > 0 && rowCount == m_settings.getLimit()) {
                     break OUTER_LOOP;
                 }
                 exec.checkCanceled();
-                Map<String, DataCell> cells = new HashMap<>();
-                for (Entry<String, AttributeValue> e : item.entrySet()) {
+                final Map<String, DataCell> cells = new HashMap<>();
+                for (final Entry<String, AttributeValue> e : item.entrySet()) {
                     cells.put(e.getKey(), DynamoDBToKNIMEUtil.attributeValueToDataCell(e.getValue()));
                 }
                 dc.addRow(new RowKey(String.format("Row%d", rowCount++)), cells);
             }
         }
         dc.close();
-        
+
         if (m_settings.publishConsumedCapUnits()) {
             pushFlowVariableDouble(CAPACITY_UNITS_FLOW_VAR, consumedCap);
         }
 
-        return new PortObject[] {(BufferedDataTable)dc.getTable()};
+        return new PortObject[] {inObjects[0], dc.getTable()};
     }
 
     /**
@@ -254,7 +254,7 @@ final class DynamoDBQueryNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBQuerySettings s = new DynamoDBQuerySettings();
+        final DynamoDBQuerySettings s = new DynamoDBQuerySettings();
         s.loadSettings(settings);
     }
 

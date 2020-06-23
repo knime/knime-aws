@@ -116,14 +116,14 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
      */
     DynamoDBCreateTableNodeModel() {
         super(new PortType[] {
-                AmazonConnectionInformationPortObject.TYPE_OPTIONAL,
+                AmazonConnectionInformationPortObject.TYPE,
                 FlowVariablePortObject.TYPE_OPTIONAL},
-                new PortType[0]);
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        return new PortObjectSpec[0];
+        return new PortObjectSpec[] {inSpecs[0]};
     }
 
     private Projection getProjectionFromIndex(final IndexSettings idx) {
@@ -227,7 +227,7 @@ final class DynamoDBCreateTableNodeModel extends NodeModel {
             }
         }
 
-        return new PortObject[0];
+        return new PortObject[] {inObjects[0]};
     }
 
     private void createIndexes(final Set<String> coveredAttrs, final List<AttributeDefinition> attrs,

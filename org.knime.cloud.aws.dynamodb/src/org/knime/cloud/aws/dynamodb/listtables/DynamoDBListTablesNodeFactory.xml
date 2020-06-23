@@ -42,8 +42,9 @@
     </fullDescription>
 
     <ports>
-        <inPort index="0" name="Amazon Credentials" optional="true">Credentials for an AWS account</inPort>
-        <outPort index="0" name="Table names">Table with a single string column containing the names of the tables in the given region.</outPort>
+        <inPort index="0" name="Amazon Credentials">Credentials for an AWS account</inPort>
+        <outPort index="0" name="Amazon Credentials">Credentials for an AWS account</outPort>
+        <outPort index="1" name="Table names">Table with a single string column containing the names of the tables in the given region.</outPort>
     </ports>
 </knimeNode>
 

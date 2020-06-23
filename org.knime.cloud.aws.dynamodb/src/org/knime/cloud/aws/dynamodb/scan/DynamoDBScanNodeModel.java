@@ -87,52 +87,52 @@ import software.amazon.awssdk.services.dynamodb.paginators.ScanIterable;
  */
 final class DynamoDBScanNodeModel extends NodeModel {
 
-    private DynamoDBScanSettings m_settings = new DynamoDBScanSettings();
+    private final DynamoDBScanSettings m_settings = new DynamoDBScanSettings();
 
     /**
      * Default Constructor.
      */
     DynamoDBScanNodeModel() {
-        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE_OPTIONAL},
-                new PortType[] {BufferedDataTable.TYPE});
+        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE},
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         // We can't know what fields we return
-        return new PortObjectSpec[] {null};
+        return new PortObjectSpec[] {inSpecs[0], null};
     }
 
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        
-        CloudConnectionInformation conInfo = inObjects[0] == null
+
+        final CloudConnectionInformation conInfo = inObjects[0] == null
                 ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
-        
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
+
         // Setup maps for placeholders in the expressions. DynamoDB requires this for reserved keywords
         // and strange column names. We always use it to be sure.
-        Map<String, AttributeValue> valueMap = new HashMap<>();
-        for (ValueMapping vm : m_settings.getPlaceholderSettings().getValues()) {
+        final Map<String, AttributeValue> valueMap = new HashMap<>();
+        for (final ValueMapping vm : m_settings.getPlaceholderSettings().getValues()) {
             valueMap.put(vm.getName(), vm.getAttributeValue());
         }
-        
-        Builder builder = ScanRequest.builder()
+
+        final Builder builder = ScanRequest.builder()
             .returnConsumedCapacity(m_settings.publishConsumedCapUnits()
                                     ? ReturnConsumedCapacity.TOTAL : ReturnConsumedCapacity.NONE)
             .tableName(m_settings.getTableName())
             .consistentRead(m_settings.isConsistentRead());
-        
-        boolean hasFilter = m_settings.getFilterExpr().trim().length() > 0;
-        boolean hasProjection = m_settings.getProjectionExpr().trim().length() > 0;
-        
+
+        final boolean hasFilter = m_settings.getFilterExpr().trim().length() > 0;
+        final boolean hasProjection = m_settings.getProjectionExpr().trim().length() > 0;
+
         if (hasFilter) {
             builder.filterExpression(m_settings.getFilterExpr());
         }
         if (hasProjection) {
             builder.projectionExpression(m_settings.getProjectionExpr());
         }
-        
+
         if (hasFilter || hasProjection) {
             if (!m_settings.getPlaceholderSettings().getNames().isEmpty()) {
                 builder.expressionAttributeNames(m_settings.getPlaceholderSettings().getNames());
@@ -152,44 +152,44 @@ final class DynamoDBScanNodeModel extends NodeModel {
         ScanIterable pages;
         try {
             pages = ddb.scanPaginator(builder.build());
-        } catch (ResourceNotFoundException e) {
-            String msg = m_settings.getUseIndex()
+        } catch (final ResourceNotFoundException e) {
+            final String msg = m_settings.getUseIndex()
                     ? String.format(NodeConstants.TABLE_OR_INDEX_MISSING_ERROR,
                             m_settings.getTableName(), m_settings.getIndexName())
                     : String.format(NodeConstants.TABLE_MISSING_ERROR, m_settings.getTableName());
             throw new InvalidSettingsException(msg, e);
         }
-        
-        DynamicDataContainer dc = new DynamicDataContainer(ds -> exec.createDataContainer(ds));
-        
+
+        final DynamicDataContainer dc = new DynamicDataContainer(ds -> exec.createDataContainer(ds));
+
         double consumedCap = 0.0;
         long rowCount = 0;
         OUTER_LOOP:
-        for (ScanResponse response : pages) {
+        for (final ScanResponse response : pages) {
             // In the first iteration we build the table schema and create the data container
             if (m_settings.publishConsumedCapUnits()) {
                 consumedCap += response.consumedCapacity().capacityUnits();
             }
-            for (Map<String, AttributeValue> item : response.items()) {
+            for (final Map<String, AttributeValue> item : response.items()) {
                 exec.checkCanceled();
                 if (m_settings.getLimit() > 0 && rowCount == m_settings.getLimit()) {
                     break OUTER_LOOP;
                 }
                 exec.checkCanceled();
-                Map<String, DataCell> cells = new HashMap<>();
-                for (Entry<String, AttributeValue> e : item.entrySet()) {
+                final Map<String, DataCell> cells = new HashMap<>();
+                for (final Entry<String, AttributeValue> e : item.entrySet()) {
                     cells.put(e.getKey(), DynamoDBToKNIMEUtil.attributeValueToDataCell(e.getValue()));
                 }
                 dc.addRow(new RowKey(String.format("Row%d", rowCount++)), cells);
             }
         }
         dc.close();
-        
+
         if (m_settings.publishConsumedCapUnits()) {
             pushFlowVariableDouble("scanConsumedCapacityUnits", consumedCap);
         }
-        
-        return new PortObject[] {(BufferedDataTable)dc.getTable()};
+
+        return new PortObject[] {inObjects[0], dc.getTable()};
     }
 
     /**
@@ -221,7 +221,7 @@ final class DynamoDBScanNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBScanSettings s = new DynamoDBScanSettings();
+        final DynamoDBScanSettings s = new DynamoDBScanSettings();
         s.loadSettings(settings);
     }
 

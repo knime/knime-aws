@@ -75,9 +75,10 @@
     </fullDescription>
 
     <ports>
-        <inPort index="0" name="Amazon Credentials" optional="true">Credentials for an AWS account</inPort>
+        <inPort index="0" name="Amazon Credentials">Credentials for an AWS account</inPort>
         <inPort index="1" name="KNIME table">KNIME data table with keys of items to be retrieved</inPort>
-        <outPort index="0" name="KNIME table">KNIME data table with retrieved items</outPort>
+        <outPort index="0" name="Amazon Credentials">Credentials for an AWS account</outPort>
+        <outPort index="1" name="KNIME table">KNIME data table with retrieved items</outPort>
     </ports>
 </knimeNode>
 

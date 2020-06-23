@@ -82,49 +82,49 @@ import software.amazon.awssdk.services.dynamodb.paginators.ListTablesIterable;
  */
 final class DynamoDBListTablesNodeModel extends NodeModel {
 
-    private DynamoDBListTablesSettings m_settings = new DynamoDBListTablesSettings();
+    private final DynamoDBListTablesSettings m_settings = new DynamoDBListTablesSettings();
 
     /**
      * Default Constructor.
      */
     DynamoDBListTablesNodeModel() {
-        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE_OPTIONAL},
-                new PortType[] {BufferedDataTable.TYPE});
+        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE},
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        return new PortObjectSpec[] {createOutputSpec()};
+        return new PortObjectSpec[] {inSpecs[0], createOutputSpec()};
     }
-    
+
     private DataTableSpec createOutputSpec() {
-        DataTableSpecCreator specCreator = new DataTableSpecCreator();
+        final DataTableSpecCreator specCreator = new DataTableSpecCreator();
         specCreator.addColumns(new DataColumnSpecCreator("tableName", StringCell.TYPE).createSpec());
         return specCreator.createSpec();
     }
 
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        
-        CloudConnectionInformation con = inObjects[0] == null
+
+        final CloudConnectionInformation con = inObjects[0] == null
                 ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, con);
-        
-        Builder builder = ListTablesRequest.builder();
+
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, con);
+
+        final Builder builder = ListTablesRequest.builder();
         if (m_settings.getLimit() != DynamoDBListTablesSettings.UNLIMITED) {
             builder.limit(m_settings.getLimit());
         }
-        
-        ListTablesIterable tables = ddb.listTablesPaginator(builder.build());
-        
-        DataContainer dc = exec.createDataContainer(createOutputSpec());
-        
+
+        final ListTablesIterable tables = ddb.listTablesPaginator(builder.build());
+
+        final DataContainer dc = exec.createDataContainer(createOutputSpec());
+
         long counter = 0;
         OUTER_LOOP:
-        for (ListTablesResponse response : tables) {
+        for (final ListTablesResponse response : tables) {
             exec.checkCanceled();
-            for (String tableName : response.tableNames()) {
+            for (final String tableName : response.tableNames()) {
                 dc.addRowToTable(new DefaultRow(
                         new RowKey(String.format("Row%d", counter++)), new StringCell(tableName)));
                 if (m_settings.getLimit() != DynamoDBListTablesSettings.UNLIMITED && counter == m_settings.getLimit()) {
@@ -133,7 +133,7 @@ final class DynamoDBListTablesNodeModel extends NodeModel {
             }
         }
         dc.close();
-        return new PortObject[] {(BufferedDataTable)dc.getTable()};
+        return new PortObject[] {inObjects[0], (BufferedDataTable)dc.getTable()};
     }
 
     /**
@@ -165,7 +165,7 @@ final class DynamoDBListTablesNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBListTablesSettings s = new DynamoDBListTablesSettings();
+        final DynamoDBListTablesSettings s = new DynamoDBListTablesSettings();
         s.loadSettings(settings);
     }
 

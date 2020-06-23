@@ -85,14 +85,14 @@ final class DynamoDBDeleteTableNodeModel extends NodeModel {
      */
     DynamoDBDeleteTableNodeModel() {
         super(new PortType[] {
-                AmazonConnectionInformationPortObject.TYPE_OPTIONAL,
+                AmazonConnectionInformationPortObject.TYPE,
                 FlowVariablePortObject.TYPE_OPTIONAL},
-                new PortType[0]);
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        return new PortObjectSpec[0];
+        return new PortObjectSpec[] {inSpecs[0]};
     }
 
     @Override
@@ -125,7 +125,7 @@ final class DynamoDBDeleteTableNodeModel extends NodeModel {
             }
         }
 
-        return new PortObject[0];
+        return new PortObject[] {inObjects[0]};
     }
 
     /**

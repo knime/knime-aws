@@ -58,13 +58,10 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBKeyColumnsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBPlaceholderPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBTablePanel;
 import org.knime.cloud.aws.dynamodb.ui.EnumComboBox;
-import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
@@ -83,19 +80,18 @@ import software.amazon.awssdk.services.dynamodb.model.ReturnValue;
  */
 public class DynamoDBUpdateItemNodeDialog extends NodeDialogPane {
 
-    private DynamoDBUpdateItemSettings m_settings = new DynamoDBUpdateItemSettings();
-    
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
+    private final DynamoDBUpdateItemSettings m_settings = new DynamoDBUpdateItemSettings();
+
     private DynamoDBTablePanel m_table;
-    private DynamoDBKeyColumnsPanel m_keys = new DynamoDBKeyColumnsPanel();
-    private DynamoDBPlaceholderPanel m_placeholders = new DynamoDBPlaceholderPanel(true);
-    
-    private JTextField m_conditionExpression = new JTextField(10);
-    private JTextField m_updateExpression = new JTextField();
-    private EnumComboBox<ReturnValue> m_returnValue = new EnumComboBox<>(ReturnValue.values(),
+    private final DynamoDBKeyColumnsPanel m_keys = new DynamoDBKeyColumnsPanel();
+    private final DynamoDBPlaceholderPanel m_placeholders = new DynamoDBPlaceholderPanel(true);
+
+    private final JTextField m_conditionExpression = new JTextField(10);
+    private final JTextField m_updateExpression = new JTextField();
+    private final EnumComboBox<ReturnValue> m_returnValue = new EnumComboBox<>(ReturnValue.values(),
             new String[] {"None", "All old", "Updated old", "All new", "Updated new"});
-    
-    private JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
+
+    private final JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
 
     /**
      * Creates a new instance of the dialog.
@@ -103,10 +99,10 @@ public class DynamoDBUpdateItemNodeDialog extends NodeDialogPane {
     public DynamoDBUpdateItemNodeDialog() {
         addTab("Standard Settings", createStdSettingsTab());
     }
-    
+
     private JPanel createStdSettingsTab() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
@@ -114,70 +110,61 @@ public class DynamoDBUpdateItemNodeDialog extends NodeDialogPane {
         c.gridwidth = 2;
         c.anchor = GridBagConstraints.WEST;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        panel.add(m_credentials, c);
-        
-        c.gridy++;
+
         m_table = new DynamoDBTablePanel(createFlowVariableModel(DynamoDBTableSettings.CFG_TABLE_NAME, Type.STRING));
         panel.add(m_table, c);
-        
+
         c.gridy++;
         panel.add(m_keys, c);
-        
+
         c.gridy++;
         c.gridwidth = 1;
         panel.add(new JLabel("Condition Expression"), c);
-        
+
         c.gridx++;
         panel.add(m_conditionExpression, c);
-        
+
         c.gridy++;
         c.gridx = 0;
         panel.add(new JLabel("Update Expression"), c);
-        
+
         c.gridx++;
         panel.add(m_updateExpression, c);
-        
+
         c.gridy++;
         c.gridx = 0;
         panel.add(new JLabel("Return Values"), c);
-        
+
         c.gridx++;
         panel.add(m_returnValue, c);
-        
+
         c.gridwidth = 2;
         c.gridy++;
         c.gridx = 0;
         panel.add(m_placeholders, c);
-        
+
         c.gridy++;
         panel.add(m_flowVars, c);
         return panel;
     }
-    
+
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
         m_settings.loadSettingsForDialog(settings);
-        
-        m_credentials.updateFromSettings(m_settings);
+
         m_table.updateFromSettings(m_settings);
         m_keys.updateFromSettings((DataTableSpec)specs[1], m_settings.getKeyColumns());
         m_placeholders.updateFromSettings(m_settings.getPlaceholders(), (DataTableSpec)specs[1]);
-        
+
         m_conditionExpression.setText(m_settings.getConditionExpression());
         m_updateExpression.setText(m_settings.getUpdateExpression());
         m_returnValue.setSelectedItemValue(m_settings.getReturnValue());
         m_flowVars.setSelected(m_settings.publishConsumedCapUnits());
-
-        m_credentials.setCloudConnectionInfo(specs[0] == null ? null
-                : (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation());
     }
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        m_credentials.saveToSettings(m_settings);
         m_table.saveToSettings(m_settings);
         m_keys.saveToSettings(m_settings.getKeyColumns());
         m_placeholders.saveToSettings(m_settings.getPlaceholders());
@@ -185,7 +172,7 @@ public class DynamoDBUpdateItemNodeDialog extends NodeDialogPane {
         m_settings.setUpdateExpression(m_updateExpression.getText());
         m_settings.setReturnValue(m_returnValue.getSelectedItemValue());
         m_settings.setPublishConsumedCapUnits(m_flowVars.isSelected());
-        
+
         m_settings.saveSettings(settings);
     }
 }

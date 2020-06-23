@@ -84,8 +84,8 @@ import software.amazon.awssdk.services.dynamodb.model.ReturnConsumedCapacity;
 import software.amazon.awssdk.services.dynamodb.model.ReturnValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest.Builder;
-import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
+import software.amazon.awssdk.utils.StringUtils;
 
 /**
  * The {@code NodeModel} for the DynamoDB Update Item node.
@@ -95,93 +95,93 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 public class DynamoDBUpdateItemNodeModel extends NodeModel {
 
     private static final int EXPONENTIAL_BACKOFF_FACTOR = 100;
-    private DynamoDBUpdateItemSettings m_settings = new DynamoDBUpdateItemSettings();
+    private final DynamoDBUpdateItemSettings m_settings = new DynamoDBUpdateItemSettings();
 
     /**
      * Default Constructor.
      */
     protected DynamoDBUpdateItemNodeModel() {
         super(new PortType[] {
-                AmazonConnectionInformationPortObject.TYPE_OPTIONAL, BufferedDataTable.TYPE},
-                new PortType[] {BufferedDataTable.TYPE});
+                AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE},
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         // We can't know what fields we return
-        return null;
+    	return new PortObjectSpec[] {inSpecs[0], null};
     }
 
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        
-        CloudConnectionInformation conInfo = inObjects[0] == null
-                ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
 
-        BufferedDataTable inTable = (BufferedDataTable)inObjects[1];
-        DataTableSpec inSpec = inTable.getSpec();
-        int hashKeyIdx = inSpec.findColumnIndex(m_settings.getKeyColumns().getHashKeyColumn());
-        int rangeKeyIdx = m_settings.getKeyColumns().getRangeKeyColumn() == null
+        final CloudConnectionInformation conInfo = inObjects[0] == null
+                ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
+
+        final BufferedDataTable inTable = (BufferedDataTable)inObjects[1];
+        final DataTableSpec inSpec = inTable.getSpec();
+        final int hashKeyIdx = inSpec.findColumnIndex(m_settings.getKeyColumns().getHashKeyColumn());
+        final int rangeKeyIdx = m_settings.getKeyColumns().getRangeKeyColumn() == null
                 ? -1 : inSpec.findColumnIndex(m_settings.getKeyColumns().getRangeKeyColumn());
-        
-        Function<DataCell, AttributeValue> hashKeyMapper =
+
+        final Function<DataCell, AttributeValue> hashKeyMapper =
                 KNIMEToDynamoDBUtil.createMapper(inSpec.getColumnSpec(hashKeyIdx).getType());
-        Function<DataCell, AttributeValue> rangeKeyMapper = rangeKeyIdx == -1
+        final Function<DataCell, AttributeValue> rangeKeyMapper = rangeKeyIdx == -1
                 ? null : KNIMEToDynamoDBUtil.createMapper(inSpec.getColumnSpec(rangeKeyIdx).getType());
-        
-        List<Pair<ValueMapping, Integer>> columnValues = new ArrayList<>();
-        Map<String, AttributeValue> tmpValueMap = new HashMap<>();
-        for (ValueMapping vm : m_settings.getPlaceholders().getValues()) {
+
+        final List<Pair<ValueMapping, Integer>> columnValues = new ArrayList<>();
+        final Map<String, AttributeValue> tmpValueMap = new HashMap<>();
+        for (final ValueMapping vm : m_settings.getPlaceholders().getValues()) {
             if (!vm.isColumnType()) {
                 tmpValueMap.put(vm.getName(), vm.getAttributeValue());
             } else {
-                columnValues.add(new Pair<ValueMapping, Integer>(vm, inSpec.findColumnIndex(vm.getValue())));
+                columnValues.add(new Pair<>(vm, inSpec.findColumnIndex(vm.getValue())));
             }
         }
-        
-        String conditionExpression = m_settings.getConditionExpression();
-        String updateExpression = m_settings.getUpdateExpression();
-        
-        ReturnConsumedCapacity returnCapacity = m_settings.publishConsumedCapUnits()
+
+        final String conditionExpression = m_settings.getConditionExpression();
+        final String updateExpression = m_settings.getUpdateExpression();
+
+        final ReturnConsumedCapacity returnCapacity = m_settings.publishConsumedCapUnits()
                 ? ReturnConsumedCapacity.TOTAL : ReturnConsumedCapacity.NONE;
-        
-        DynamicDataContainer dc = new DynamicDataContainer(ds -> exec.createDataContainer(ds));
-        
+
+        final DynamicDataContainer dc = new DynamicDataContainer(ds -> exec.createDataContainer(ds));
+
         double consumedCap = 0.0;
         int nRetry = 0;
         double counter = 0.0;
         OUTER_LOOP:
-        for (DataRow inRow : inTable) {
+        for (final DataRow inRow : inTable) {
             exec.setProgress(counter++ / inTable.size());
             exec.checkCanceled();
-            DataCell hashCell = inRow.getCell(hashKeyIdx);
+            final DataCell hashCell = inRow.getCell(hashKeyIdx);
             if (hashCell.isMissing()) {
                 throw new InvalidSettingsException("The hash key column must not contain missing cells");
             }
-            AttributeValue hash = hashKeyMapper.apply(hashCell);
-            Map<String, AttributeValue> keys = new HashMap<>();
+            final AttributeValue hash = hashKeyMapper.apply(hashCell);
+            final Map<String, AttributeValue> keys = new HashMap<>();
             keys.put(m_settings.getKeyColumns().getHashKeyColumn(), hash);
             if (rangeKeyIdx != -1) {
-                DataCell rangeCell = inRow.getCell(rangeKeyIdx);
+                final DataCell rangeCell = inRow.getCell(rangeKeyIdx);
                 if (rangeCell.isMissing()) {
                     throw new InvalidSettingsException("The range key column must not contain missing cells");
                 }
-                AttributeValue range = rangeKeyMapper.apply(rangeCell);
+                final AttributeValue range = rangeKeyMapper.apply(rangeCell);
                 keys.put(m_settings.getKeyColumns().getRangeKeyColumn(), range);
             }
-            
+
             // For those placeholders that insert the value of a column, we have to update the value map here
             Map<String, AttributeValue> valueMap = tmpValueMap;
             if (!columnValues.isEmpty()) {
                 valueMap = new HashMap<>(valueMap);
-                for (Pair<ValueMapping, Integer> vm : columnValues) {
+                for (final Pair<ValueMapping, Integer> vm : columnValues) {
                     valueMap.put(vm.getFirst().getName(),
                             KNIMEToDynamoDBUtil.dataCellToAttributeValue(inRow.getCell(vm.getSecond())));
                 }
             }
-            
-            Builder builder = UpdateItemRequest.builder();
+
+            final Builder builder = UpdateItemRequest.builder();
             if (!m_settings.getPlaceholders().getNames().isEmpty()) {
                 builder.expressionAttributeNames(m_settings.getPlaceholders().getNames());
             }
@@ -191,15 +191,15 @@ public class DynamoDBUpdateItemNodeModel extends NodeModel {
             if (!StringUtils.isBlank(conditionExpression)) {
                 builder.conditionExpression(conditionExpression);
             }
-            
-            UpdateItemRequest request = builder
+
+            final UpdateItemRequest request = builder
                     .tableName(m_settings.getTableName())
                     .key(keys)
                     .updateExpression(updateExpression)
                     .returnValues(m_settings.getReturnValue())
                     .returnConsumedCapacity(returnCapacity)
                     .build();
-            
+
             UpdateItemResponse response = null;
             boolean success = false;
             while (!success) {
@@ -210,34 +210,34 @@ public class DynamoDBUpdateItemNodeModel extends NodeModel {
                 try {
                     response = ddb.updateItem(request);
                     success = true;
-                } catch (ProvisionedThroughputExceededException e) {
+                } catch (final ProvisionedThroughputExceededException e) {
                     nRetry++;
-                } catch (ConditionalCheckFailedException e) {
+                } catch (final ConditionalCheckFailedException e) {
                     continue OUTER_LOOP;
                 }
             }
-            
+
             if (m_settings.publishConsumedCapUnits()) {
                 consumedCap += response.consumedCapacity().capacityUnits();
             }
-            
+
             if (m_settings.getReturnValue() != ReturnValue.NONE) {
-                Map<String, AttributeValue> attributes = response.attributes();
-                Map<String, DataCell> row = new HashMap<>();
-                for (Entry<String, AttributeValue> e : attributes.entrySet()) {
+                final Map<String, AttributeValue> attributes = response.attributes();
+                final Map<String, DataCell> row = new HashMap<>();
+                for (final Entry<String, AttributeValue> e : attributes.entrySet()) {
                     row.put(e.getKey(), DynamoDBToKNIMEUtil.attributeValueToDataCell(e.getValue()));
                 }
                 dc.addRow(inRow.getKey(), row);
             }
         }
-        
+
         if (m_settings.publishConsumedCapUnits()) {
             pushFlowVariableDouble("updateItemConsumedCapacityUnits", consumedCap);
         }
-        
+
         dc.close();
-        
-        return new PortObject[] {(BufferedDataTable)dc.getTable()};
+
+        return new PortObject[] {inObjects[0], dc.getTable()};
     }
 
     /**
@@ -269,7 +269,7 @@ public class DynamoDBUpdateItemNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBUpdateItemSettings s = new DynamoDBUpdateItemSettings();
+        final DynamoDBUpdateItemSettings s = new DynamoDBUpdateItemSettings();
         s.loadSettings(settings);
     }
 

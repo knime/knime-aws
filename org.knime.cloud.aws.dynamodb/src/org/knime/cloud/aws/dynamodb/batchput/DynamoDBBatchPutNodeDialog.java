@@ -60,11 +60,10 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBTablePanel;
 import org.knime.cloud.aws.dynamodb.utils.DynamoDBUtil;
+import org.knime.cloud.aws.dynamodb.utils.KNIMEUtil;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeSettingsRO;
@@ -83,70 +82,61 @@ import software.amazon.awssdk.regions.Region;
 final class DynamoDBBatchPutNodeDialog extends NodeDialogPane {
 
     private CloudConnectionInformation m_conCredentials = null;
-    
-    private DynamoDBBatchPutSettings m_settings = new DynamoDBBatchPutSettings();
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
+
+    private final DynamoDBBatchPutSettings m_settings = new DynamoDBBatchPutSettings();
     private DynamoDBTablePanel m_table;
-    private JSpinner m_batchSize = new JSpinner(new SpinnerNumberModel(25, 1, 25, 1));
-    private JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
-    
+    private final JSpinner m_batchSize = new JSpinner(new SpinnerNumberModel(25, 1, 25, 1));
+    private final JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
+
     /**
      * Creates a new instance of the dialog.
      */
     DynamoDBBatchPutNodeDialog() {
         addTab("Standard Settings", createStdSettingsTab());
     }
-    
+
     private JPanel createStdSettingsTab() {
-        JPanel stdSettings = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel stdSettings = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        stdSettings.add(m_credentials, c);
-        
-        c.gridy++;
+
         m_table = new DynamoDBTablePanel(createFlowVariableModel(DynamoDBTableSettings.CFG_TABLE_NAME, Type.STRING),
                 this::getTableNames);
         stdSettings.add(m_table, c);
-        
+
         c.gridy++;
         stdSettings.add(createBatchWriteSettingsPanel(), c);
-        
+
         c.gridy++;
         stdSettings.add(m_flowVars, c);
-        
+
         return stdSettings;
     }
-    
+
     private JPanel createBatchWriteSettingsPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.WEST;
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
-        
+
         panel.add(new JLabel("Batch Size"), c);
         c.weightx = 0;
         c.gridx++;
         panel.add(m_batchSize, c);
         return panel;
     }
-    
+
     private List<String> getTableNames() {
         try {
-            if (m_conCredentials != null) {
-                return DynamoDBUtil.getTableNames(m_conCredentials, 20);
-            } else {
-                return DynamoDBUtil.getTableNames(m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey(), 20);
-            }
-        } catch (Exception e1) {
+            return DynamoDBUtil.getTableNames(m_conCredentials, 20);
+        } catch (final Exception e1) {
             return null;
         }
     }
@@ -155,36 +145,28 @@ final class DynamoDBBatchPutNodeDialog extends NodeDialogPane {
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
         m_settings.loadSettingsForDialog(settings);
-        
-        m_credentials.updateFromSettings(m_settings);
+
         m_table.updateFromSettings(m_settings);
-        
+
         m_flowVars.setSelected(m_settings.publishConsumedCapUnits());
         m_batchSize.setValue(m_settings.getBatchSize());
-        
-        m_conCredentials = null;
-        if (specs[0] != null) {
-            m_conCredentials = (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation();
-            m_credentials.setCloudConnectionInfo(m_conCredentials);
-        }
-        
+
+        m_conCredentials = KNIMEUtil.getConnectionInformationInDialog(specs);
+
         m_table.setRegionOverwrite(m_conCredentials == null ? null : Region.of(m_conCredentials.getHost()));
     }
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        
+
         m_settings.setPublishConsumedCapUnits(m_flowVars.isSelected());
 
-        m_credentials.saveToSettings(m_settings);
-        
         m_settings.setTableName(m_table.getTableName());
         m_settings.setEndpoint(m_table.getEndpoint());
         m_settings.setRegion(m_table.getRegion());
-        
+
         m_settings.setBatchSize((int)m_batchSize.getValue());
-        
+
         m_settings.saveSettings(settings);
     }
 

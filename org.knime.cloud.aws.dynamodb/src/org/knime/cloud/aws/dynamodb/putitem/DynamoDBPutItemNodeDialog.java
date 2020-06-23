@@ -59,13 +59,12 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBPlaceholderPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBTablePanel;
 import org.knime.cloud.aws.dynamodb.ui.EnumComboBox;
 import org.knime.cloud.aws.dynamodb.utils.DynamoDBUtil;
+import org.knime.cloud.aws.dynamodb.utils.KNIMEUtil;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
@@ -86,18 +85,17 @@ import software.amazon.awssdk.services.dynamodb.model.ReturnValue;
 final class DynamoDBPutItemNodeDialog extends NodeDialogPane {
 
     private CloudConnectionInformation m_conCredentials = null;
-    
-    private DynamoDBPutItemSettings m_settings = new DynamoDBPutItemSettings();
-    
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
+
+    private final DynamoDBPutItemSettings m_settings = new DynamoDBPutItemSettings();
+
     private DynamoDBTablePanel m_table;
-    private DynamoDBPlaceholderPanel m_placeholders = new DynamoDBPlaceholderPanel(true);
-    
-    private JTextField m_conditionExpression = new JTextField(10);
-    private EnumComboBox<ReturnValue> m_returnValue = new EnumComboBox<>(
+    private final DynamoDBPlaceholderPanel m_placeholders = new DynamoDBPlaceholderPanel(true);
+
+    private final JTextField m_conditionExpression = new JTextField(10);
+    private final EnumComboBox<ReturnValue> m_returnValue = new EnumComboBox<>(
             new ReturnValue[] {ReturnValue.NONE, ReturnValue.ALL_OLD}, new String[] {"None", "All old"});
-    
-    private JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
+
+    private final JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
 
     /**
      * Creates a new instance of the dialog.
@@ -105,10 +103,10 @@ final class DynamoDBPutItemNodeDialog extends NodeDialogPane {
     DynamoDBPutItemNodeDialog() {
         addTab("Standard Settings", createStdSettingsTab());
     }
-    
+
     private JPanel createStdSettingsTab() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
@@ -116,84 +114,69 @@ final class DynamoDBPutItemNodeDialog extends NodeDialogPane {
         c.gridwidth = 2;
         c.anchor = GridBagConstraints.WEST;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        panel.add(m_credentials, c);
-        
-        c.gridy++;
+
         m_table = new DynamoDBTablePanel(createFlowVariableModel(DynamoDBTableSettings.CFG_TABLE_NAME, Type.STRING),
                 this::getTableNames);
         panel.add(m_table, c);
-        
+
         c.gridy++;
         c.gridwidth = 1;
         panel.add(new JLabel("Condition Expression"), c);
-        
+
         c.gridx++;
         panel.add(m_conditionExpression, c);
-        
+
         c.gridy++;
         c.gridx = 0;
         panel.add(new JLabel("Return Values"), c);
-        
+
         c.gridx++;
         panel.add(m_returnValue, c);
-        
+
         c.gridwidth = 2;
         c.gridy++;
         c.gridx = 0;
         panel.add(m_placeholders, c);
-        
+
         c.gridy++;
         panel.add(m_flowVars, c);
         return panel;
     }
-    
+
     private List<String> getTableNames() {
         try {
-            if (m_conCredentials != null) {
-                return DynamoDBUtil.getTableNames(m_conCredentials, 20);
-            } else {
-                return DynamoDBUtil.getTableNames(m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey(), 20);
-            }
-        } catch (Exception e1) {
+            return DynamoDBUtil.getTableNames(m_conCredentials, 20);
+        } catch (final Exception e1) {
             return null;
         }
     }
-    
+
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
         m_settings.loadSettingsForDialog(settings);
-        
-        m_credentials.updateFromSettings(m_settings);
+
         m_table.updateFromSettings(m_settings);
         m_placeholders.updateFromSettings(m_settings.getPlaceholders(), (DataTableSpec)specs[1]);
-        
+
         m_conditionExpression.setText(m_settings.getConditionExpression());
         m_returnValue.setSelectedItemValue(m_settings.getReturnValue());
         m_flowVars.setSelected(m_settings.publishConsumedCapUnits());
 
-        m_conCredentials = null;
-        if (specs[0] != null) {
-            m_conCredentials = (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation();
-            m_credentials.setCloudConnectionInfo(m_conCredentials);
-        }
-        
+        m_conCredentials = KNIMEUtil.getConnectionInformationInDialog(specs);
+
         m_table.setRegionOverwrite(m_conCredentials == null ? null : Region.of(m_conCredentials.getHost()));
     }
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        
-        m_credentials.saveToSettings(m_settings);
+
         m_table.saveToSettings(m_settings);
         m_placeholders.saveToSettings(m_settings.getPlaceholders());
         m_settings.setConditionExpression(m_conditionExpression.getText());
         m_settings.setReturnValue(m_returnValue.getSelectedItemValue());
         m_settings.setPublishConsumedCapUnits(m_flowVars.isSelected());
-        
+
         m_settings.saveSettings(settings);
     }
 }

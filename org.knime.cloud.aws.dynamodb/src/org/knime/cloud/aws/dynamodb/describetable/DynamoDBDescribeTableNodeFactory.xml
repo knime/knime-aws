@@ -42,9 +42,10 @@
     </fullDescription>
 
     <ports>
-        <inPort index="0" name="Amazon Credentials" optional="true">Credentials for an AWS account</inPort>
-        <outPort index="0" name="Table information">Information about the table</outPort>
-        <outPort index="1" name="Index information">Information about the table's indexes</outPort>
+        <inPort index="0" name="Amazon Credentials">Credentials for an AWS account</inPort>
+        <outPort index="0" name="Amazon Credentials">Credentials for an AWS account</outPort>
+        <outPort index="1" name="Table information">Information about the table</outPort>
+        <outPort index="2" name="Index information">Information about the table's indexes</outPort>
     </ports>
 </knimeNode>
 

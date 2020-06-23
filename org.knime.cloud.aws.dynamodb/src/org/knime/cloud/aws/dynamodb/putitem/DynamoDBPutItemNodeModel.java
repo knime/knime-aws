@@ -97,69 +97,69 @@ import software.amazon.awssdk.utils.StringUtils;
 final class DynamoDBPutItemNodeModel extends NodeModel {
 
     private static final int EXPONENTIAL_BACKOFF_FACTOR = 100;
-    private DynamoDBPutItemSettings m_settings = new DynamoDBPutItemSettings();
+    private final DynamoDBPutItemSettings m_settings = new DynamoDBPutItemSettings();
 
     /**
      * Default Constructor.
      */
     DynamoDBPutItemNodeModel() {
         super(new PortType[] {
-                AmazonConnectionInformationPortObject.TYPE_OPTIONAL, BufferedDataTable.TYPE},
-                new PortType[] {BufferedDataTable.TYPE});
+                AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE},
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
         // We can't know what fields we return
-        return new PortObjectSpec[] {null};
+    	return new PortObjectSpec[] {inSpecs[0], null};
     }
 
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        
-        CloudConnectionInformation conInfo = inObjects[0] == null
-                ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
 
-        BufferedDataTable inTable = (BufferedDataTable)inObjects[1];
-        DataTableSpec inSpec = inTable.getSpec();
-        
-        List<Pair<ValueMapping, Integer>> columnValues = new ArrayList<>();
-        Map<String, AttributeValue> tmpValueMap = new HashMap<>();
-        for (ValueMapping vm : m_settings.getPlaceholders().getValues()) {
+        final CloudConnectionInformation conInfo = inObjects[0] == null
+                ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
+
+        final BufferedDataTable inTable = (BufferedDataTable)inObjects[1];
+        final DataTableSpec inSpec = inTable.getSpec();
+
+        final List<Pair<ValueMapping, Integer>> columnValues = new ArrayList<>();
+        final Map<String, AttributeValue> tmpValueMap = new HashMap<>();
+        for (final ValueMapping vm : m_settings.getPlaceholders().getValues()) {
             if (!vm.isColumnType()) {
                 tmpValueMap.put(vm.getName(), vm.getAttributeValue());
             } else {
-                columnValues.add(new Pair<ValueMapping, Integer>(vm, inSpec.findColumnIndex(vm.getValue())));
+                columnValues.add(new Pair<>(vm, inSpec.findColumnIndex(vm.getValue())));
             }
         }
-        
-        String conditionExpression = m_settings.getConditionExpression();
-        
-        ReturnConsumedCapacity returnCapacity = m_settings.publishConsumedCapUnits()
+
+        final String conditionExpression = m_settings.getConditionExpression();
+
+        final ReturnConsumedCapacity returnCapacity = m_settings.publishConsumedCapUnits()
                 ? ReturnConsumedCapacity.TOTAL : ReturnConsumedCapacity.NONE;
-        
-        DynamicDataContainer dc = new DynamicDataContainer(ds -> exec.createDataContainer(ds));
-        Function<DataCell, AttributeValue>[] mappers = KNIMEToDynamoDBUtil.createMappers(inSpec);
-        
+
+        final DynamicDataContainer dc = new DynamicDataContainer(ds -> exec.createDataContainer(ds));
+        final Function<DataCell, AttributeValue>[] mappers = KNIMEToDynamoDBUtil.createMappers(inSpec);
+
         double consumedCap = 0.0;
         int nRetry = 0;
         double counter = 0.0;
         OUTER_LOOP:
-        for (DataRow inRow : inTable) {
+        for (final DataRow inRow : inTable) {
             exec.setProgress(counter++ / inTable.size());
             exec.checkCanceled();
             // For those placeholders that insert the value of a column, we have to update the value map here
             Map<String, AttributeValue> valueMap = tmpValueMap;
             if (!columnValues.isEmpty()) {
                 valueMap = new HashMap<>(valueMap);
-                for (Pair<ValueMapping, Integer> vm : columnValues) {
+                for (final Pair<ValueMapping, Integer> vm : columnValues) {
                     valueMap.put(vm.getFirst().getName(),
                             KNIMEToDynamoDBUtil.dataCellToAttributeValue(inRow.getCell(vm.getSecond())));
                 }
             }
-            
-            Builder builder = PutItemRequest.builder();
+
+            final Builder builder = PutItemRequest.builder();
             if (!m_settings.getPlaceholders().getNames().isEmpty()) {
                 builder.expressionAttributeNames(m_settings.getPlaceholders().getNames());
             }
@@ -169,20 +169,20 @@ final class DynamoDBPutItemNodeModel extends NodeModel {
             if (!StringUtils.isBlank(conditionExpression)) {
                 builder.conditionExpression(conditionExpression);
             }
-            
+
             // Create map of data to write
-            Map<String, AttributeValue> data = new HashMap<>();
+            final Map<String, AttributeValue> data = new HashMap<>();
             for (int i = 0; i < inSpec.getNumColumns(); i++) {
                 data.put(inSpec.getColumnSpec(i).getName(), mappers[i].apply(inRow.getCell(i)));
             }
-            
-            PutItemRequest request = builder
+
+            final PutItemRequest request = builder
                     .tableName(m_settings.getTableName())
                     .returnValues(m_settings.getReturnValue())
                     .returnConsumedCapacity(returnCapacity)
                     .item(data)
                     .build();
-            
+
             PutItemResponse response = null;
             boolean success = false;
             while (!success) {
@@ -193,37 +193,37 @@ final class DynamoDBPutItemNodeModel extends NodeModel {
                 try {
                     response = ddb.putItem(request);
                     success = true;
-                } catch (ProvisionedThroughputExceededException e) {
+                } catch (final ProvisionedThroughputExceededException e) {
                     nRetry++;
-                } catch (ConditionalCheckFailedException e) {
+                } catch (final ConditionalCheckFailedException e) {
                     continue OUTER_LOOP;
-                } catch (ResourceNotFoundException e) {
+                } catch (final ResourceNotFoundException e) {
                     throw new InvalidSettingsException(
                             String.format(NodeConstants.TABLE_MISSING_ERROR, m_settings.getTableName()), e);
                 }
             }
-            
+
             if (m_settings.publishConsumedCapUnits()) {
                 consumedCap += response.consumedCapacity().capacityUnits();
             }
-            
+
             if (m_settings.getReturnValue() != ReturnValue.NONE) {
-                Map<String, AttributeValue> attributes = response.attributes();
-                Map<String, DataCell> row = new HashMap<>();
-                for (Entry<String, AttributeValue> e : attributes.entrySet()) {
+                final Map<String, AttributeValue> attributes = response.attributes();
+                final Map<String, DataCell> row = new HashMap<>();
+                for (final Entry<String, AttributeValue> e : attributes.entrySet()) {
                     row.put(e.getKey(), DynamoDBToKNIMEUtil.attributeValueToDataCell(e.getValue()));
                 }
                 dc.addRow(inRow.getKey(), row);
             }
         }
-        
+
         if (m_settings.publishConsumedCapUnits()) {
             pushFlowVariableDouble("putItemConsumedCapacityUnits", consumedCap);
         }
-        
+
         dc.close();
-        
-        return new PortObject[] {(BufferedDataTable)dc.getTable()};
+
+        return new PortObject[] {inObjects[0], dc.getTable()};
     }
 
     /**
@@ -255,7 +255,7 @@ final class DynamoDBPutItemNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBPutItemSettings s = new DynamoDBPutItemSettings();
+        final DynamoDBPutItemSettings s = new DynamoDBPutItemSettings();
         s.loadSettings(settings);
     }
 

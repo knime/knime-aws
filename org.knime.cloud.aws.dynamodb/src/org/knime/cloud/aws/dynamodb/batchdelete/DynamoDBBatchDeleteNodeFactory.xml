@@ -67,8 +67,9 @@
     </fullDescription>
 
     <ports>
-        <inPort index="0" name="Amazon Credentials" optional="true">Credentials for an AWS account</inPort>
+        <inPort index="0" name="Amazon Credentials">Credentials for an AWS account</inPort>
         <inPort index="1" name="KNIME table">KNIME data table with keys of items to be deleted</inPort>
+        <outPort index="0" name="Amazon Credentials">Credentials for an AWS account</outPort>
     </ports>
 </knimeNode>
 

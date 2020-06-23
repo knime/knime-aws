@@ -54,9 +54,10 @@
     </fullDescription>
 
     <ports>
-        <inPort index="0" name="Amazon Credentials" optional="true">Credentials for an AWS account</inPort>
+        <inPort index="0" name="Amazon Credentials">Credentials for an AWS account</inPort>
         <inPort index="1" name="Data table">Table with items to put</inPort>
-        <outPort index="0" name="Put results">If return value is ALL_OLD, overwritten items are returned in this table</outPort>
+        <outPort index="0" name="Amazon Credentials">Credentials for an AWS account</outPort>
+        <outPort index="1" name="Put results">If return value is ALL_OLD, overwritten items are returned in this table</outPort>
     </ports>
 </knimeNode>
 

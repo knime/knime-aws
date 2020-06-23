@@ -60,9 +60,6 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
-import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeSettingsRO;
@@ -79,42 +76,38 @@ import software.amazon.awssdk.regions.Region;
  */
 final class DynamoDBListTablesNodeDialog extends NodeDialogPane {
 
-    private DynamoDBListTablesSettings m_settings = new DynamoDBListTablesSettings();
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
+    private final DynamoDBListTablesSettings m_settings = new DynamoDBListTablesSettings();
 
-    private JComboBox<Region> m_region = new JComboBox<>(Region.regions().toArray(new Region[0]));
-    private JTextField m_endpoint = new JTextField(10);
-    private JSpinner m_limit = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 10));
-    
+    private final JComboBox<Region> m_region = new JComboBox<>(Region.regions().toArray(new Region[0]));
+    private final JTextField m_endpoint = new JTextField(10);
+    private final JSpinner m_limit = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 10));
+
     /**
      * Creates a new instance of the dialog.
      */
     DynamoDBListTablesNodeDialog() {
         addTab("Standard Settings", createStdSettingsTab());
     }
-    
+
     private JPanel createStdSettingsTab() {
-        JPanel stdSettings = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel stdSettings = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        stdSettings.add(m_credentials, c);
-        
-        c.gridy++;
+
         stdSettings.add(createDatabaseTab(), c);
-        
+
         return stdSettings;
     }
-    
+
     private JPanel createDatabaseTab() {
-        JPanel panel = new JPanel(new GridBagLayout());
+        final JPanel panel = new JPanel(new GridBagLayout());
         panel.setLayout(new GridBagLayout());
-        
-        GridBagConstraints c = new GridBagConstraints();
+
+        final GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.WEST;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(2, 2, 2, 2);
@@ -122,28 +115,28 @@ final class DynamoDBListTablesNodeDialog extends NodeDialogPane {
         c.gridy = 0;
         c.weightx = 1;
         panel.add(new JLabel("Region"), c);
-        
+
         c.gridx++;
         panel.add(m_region, c);
 
         c.gridx = 0;
         c.gridy++;
         panel.add(new JLabel("Custom Endpoint"), c);
-        
+
         c.gridx++;
         panel.add(m_endpoint, c);
-        
+
         c.gridx = 0;
         c.gridy++;
         panel.add(new JLabel("Limit (0 = all)"), c);
-        
+
         c.gridx++;
         panel.add(m_limit, c);
 
         panel.setBorder(BorderFactory.createTitledBorder("Database"));
         return panel;
     }
-    
+
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
@@ -151,11 +144,6 @@ final class DynamoDBListTablesNodeDialog extends NodeDialogPane {
         m_region.setSelectedItem(m_settings.getRegion());
         m_endpoint.setText(m_settings.getEndpoint());
         m_limit.setValue(m_settings.getLimit());
-        m_credentials.updateFromSettings(m_settings);
-        
-        m_credentials.setCloudConnectionInfo(specs[0] == null ? null
-                : (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation());
     }
 
     @Override
@@ -163,7 +151,6 @@ final class DynamoDBListTablesNodeDialog extends NodeDialogPane {
         m_settings.setRegion((Region)m_region.getSelectedItem());
         m_settings.setEndpoint(m_endpoint.getText());
         m_settings.setLimit((int)m_limit.getValue());
-        m_credentials.saveToSettings(m_settings);
         m_settings.saveSettings(settings);
     }
 }

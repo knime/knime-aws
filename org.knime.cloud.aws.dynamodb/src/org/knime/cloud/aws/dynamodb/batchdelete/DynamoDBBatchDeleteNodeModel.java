@@ -78,6 +78,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.ConsumedCapacity;
 import software.amazon.awssdk.services.dynamodb.model.DeleteRequest;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExceededException;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
@@ -92,58 +93,58 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 final class DynamoDBBatchDeleteNodeModel extends NodeModel {
 
     private static final String CAPACITY_UNITS_FLOW_VAR = "batchDeleteConsumedCapacity";
-    
-    private DynamoDBBatchDeleteSettings m_settings = new DynamoDBBatchDeleteSettings();
+
+    private final DynamoDBBatchDeleteSettings m_settings = new DynamoDBBatchDeleteSettings();
 
     /**
      * Default Constructor.
      */
     DynamoDBBatchDeleteNodeModel() {
-        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE_OPTIONAL, BufferedDataTable.TYPE},
-                new PortType[0]);
+        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE},
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        return new PortObjectSpec[0];
+        return new PortObjectSpec[] {inSpecs[0]};
     }
-    
+
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        BufferedDataTable table = (BufferedDataTable)inObjects[1];
-        DataTableSpec inSpec = table.getDataTableSpec();
-        CloudConnectionInformation conInfo = inObjects[0] == null
+        final BufferedDataTable table = (BufferedDataTable)inObjects[1];
+        final DataTableSpec inSpec = table.getDataTableSpec();
+        final CloudConnectionInformation conInfo = inObjects[0] == null
                 ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
-        
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, conInfo);
+
         int nRetry = 0;
-        int hashIndex = inSpec.findColumnIndex(m_settings.getKeyColumns().getHashKeyColumn());
-        DataColumnSpec hashCol = inSpec.getColumnSpec(hashIndex);
-        
+        final int hashIndex = inSpec.findColumnIndex(m_settings.getKeyColumns().getHashKeyColumn());
+        final DataColumnSpec hashCol = inSpec.getColumnSpec(hashIndex);
+
         int rangeIndex = -1;
         DataColumnSpec rangeCol = null;
         if (m_settings.getKeyColumns().getRangeKeyColumn() != null) {
             rangeIndex = inSpec.findColumnIndex(m_settings.getKeyColumns().getRangeKeyColumn());
             rangeCol = inSpec.getColumnSpec(rangeIndex);
         }
-        
-        List<WriteRequest> batch = new ArrayList<>();
+
+        final List<WriteRequest> batch = new ArrayList<>();
         double consumedCap = 0.0;
         double count = 0.0;
-        for (DataRow row : table) {
+        for (final DataRow row : table) {
             exec.checkCanceled();
             exec.setProgress(count++ / table.size());
-            
-            Map<String, AttributeValue> data = new HashMap<>();
-            DataCell hash = row.getCell(hashIndex);
+
+            final Map<String, AttributeValue> data = new HashMap<>();
+            final DataCell hash = row.getCell(hashIndex);
             if (hash.isMissing()) {
                 throw new InvalidSettingsException("The hash key column must not contain missing cells");
             }
             data.put(hashCol.getName(), KNIMEToDynamoDBUtil.cellToKeyAttributeValue(
                     hash, hashCol, m_settings.getKeyColumns().isHashKeyBinary()));
-            
+
             if (rangeIndex != -1) {
-                DataCell range = row.getCell(rangeIndex);
+                final DataCell range = row.getCell(rangeIndex);
                 if (range.isMissing()) {
                     throw new InvalidSettingsException("The range key column must not contain missing cells");
                 }
@@ -151,15 +152,15 @@ final class DynamoDBBatchDeleteNodeModel extends NodeModel {
                         range, rangeCol, m_settings.getKeyColumns().isRangeKeyBinary()));
             }
 
-            DeleteRequest req = DeleteRequest.builder().key(data).build();
+            final DeleteRequest req = DeleteRequest.builder().key(data).build();
             batch.add(WriteRequest.builder().deleteRequest(req).build());
             if (batch.size() == m_settings.getBatchSize()) {
                 BatchOperationResult res;
                 try {
                     res = sendBatch(ddb, batch, nRetry);
-                } catch (ProvisionedThroughputExceededException e) {
+                } catch (final ProvisionedThroughputExceededException e) {
                     throw new InvalidSettingsException(NodeConstants.THROUGHPUT_ERROR, e);
-                } catch (ResourceNotFoundException e) {
+                } catch (final ResourceNotFoundException e) {
                     throw new InvalidSettingsException(
                             String.format(NodeConstants.TABLE_MISSING_ERROR, m_settings.getTableName()), e);
                 }
@@ -174,9 +175,9 @@ final class DynamoDBBatchDeleteNodeModel extends NodeModel {
             BatchOperationResult res;
             try {
                 res = sendBatch(ddb, batch, nRetry);
-            } catch (ProvisionedThroughputExceededException e) {
+            } catch (final ProvisionedThroughputExceededException e) {
                 throw new InvalidSettingsException(NodeConstants.THROUGHPUT_ERROR, e);
-            } catch (ResourceNotFoundException e) {
+            } catch (final ResourceNotFoundException e) {
                 throw new InvalidSettingsException(
                         String.format(NodeConstants.TABLE_MISSING_ERROR, m_settings.getTableName()), e);
             }
@@ -185,12 +186,12 @@ final class DynamoDBBatchDeleteNodeModel extends NodeModel {
                 nRetry++;
             }
         }
-        
+
         if (m_settings.publishConsumedCapUnits()) {
             pushFlowVariableDouble(CAPACITY_UNITS_FLOW_VAR, consumedCap);
         }
-        
-        return new PortObject[0];
+
+        return new PortObject[] {inObjects[0]};
     }
 
     private BatchOperationResult sendBatch(final DynamoDbClient ddb, final List<WriteRequest> batch, final int nRetry)
@@ -199,9 +200,9 @@ final class DynamoDBBatchDeleteNodeModel extends NodeModel {
         if (nRetry > 0) {
             Thread.sleep((long)Math.pow(2, nRetry - 1) * 100);
         }
-        Map<String, List<WriteRequest>> req = new HashMap<>();
+        final Map<String, List<WriteRequest>> req = new HashMap<>();
         req.put(m_settings.getTableName(), batch);
-        BatchWriteItemResponse response = ddb.batchWriteItem(
+        final BatchWriteItemResponse response = ddb.batchWriteItem(
                 BatchWriteItemRequest.builder()
                 .requestItems(req)
                 .returnConsumedCapacity(m_settings.publishConsumedCapUnits()
@@ -213,16 +214,16 @@ final class DynamoDBBatchDeleteNodeModel extends NodeModel {
         if (!response.unprocessedItems().isEmpty()) {
             batch.addAll(response.unprocessedItems().get(m_settings.getTableName()));
         }
-        
+
         double consumedCapacity = 0.0;
         if (m_settings.publishConsumedCapUnits()) {
-            consumedCapacity = response.consumedCapacity().stream().mapToDouble(c -> c.capacityUnits()).sum();
+            consumedCapacity = response.consumedCapacity().stream().mapToDouble(ConsumedCapacity::capacityUnits).sum();
         }
-        
-        int numUnprocessed = response.unprocessedItems().size();
+
+        final int numUnprocessed = response.unprocessedItems().size();
         return new BatchOperationResult(numUnprocessed, consumedCapacity);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -252,7 +253,7 @@ final class DynamoDBBatchDeleteNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBBatchDeleteSettings s = new DynamoDBBatchDeleteSettings();
+        final DynamoDBBatchDeleteSettings s = new DynamoDBBatchDeleteSettings();
         s.loadSettings(settings);
     }
 

@@ -61,11 +61,10 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
-import org.knime.cloud.aws.dynamodb.ui.AWSCredentialsPanel;
 import org.knime.cloud.aws.dynamodb.ui.DynamoDBTablePanel;
 import org.knime.cloud.aws.dynamodb.utils.DynamoDBUtil;
+import org.knime.cloud.aws.dynamodb.utils.KNIMEUtil;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
-import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataType;
@@ -91,33 +90,32 @@ import software.amazon.awssdk.regions.Region;
 final class DynamoDBBatchDeleteNodeDialog extends NodeDialogPane {
 
     private CloudConnectionInformation m_conCredentials = null;
-    
+
     // Filter for hash and range key columns
     private static final ColumnFilter FILTER = new ColumnFilter() {
-        
+
         @Override
         public boolean includeColumn(final DataColumnSpec colSpec) {
             return colSpec.getType().isCompatible(StringValue.class)
                     || colSpec.getType().isCompatible(DoubleValue.class);
         }
-        
+
         @Override
         public String allFilteredMsg() {
             return "No string or number column found";
         }
     };
-    
-    private DynamoDBBatchDeleteSettings m_settings = new DynamoDBBatchDeleteSettings();
-    private AWSCredentialsPanel m_credentials = new AWSCredentialsPanel();
+
+    private final DynamoDBBatchDeleteSettings m_settings = new DynamoDBBatchDeleteSettings();
     private DynamoDBTablePanel m_table;
-    private JSpinner m_batchSize = new JSpinner(new SpinnerNumberModel(25, 1, 25, 1));
-    private JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
-    private ColumnSelectionPanel m_hashColumn = new ColumnSelectionPanel(
+    private final JSpinner m_batchSize = new JSpinner(new SpinnerNumberModel(25, 1, 25, 1));
+    private final JCheckBox m_flowVars = new JCheckBox("Publish consumed capacity units as flow variable");
+    private final ColumnSelectionPanel m_hashColumn = new ColumnSelectionPanel(
             BorderFactory.createEmptyBorder(0, 0, 0, 0), FILTER, false, false);
-    private ColumnSelectionPanel m_rangeColumn = new ColumnSelectionPanel(
+    private final ColumnSelectionPanel m_rangeColumn = new ColumnSelectionPanel(
             BorderFactory.createEmptyBorder(0, 0, 0, 0), FILTER, true, false);
-    private JCheckBox m_hashKeyBinary = new JCheckBox("as Base64 binary");
-    private JCheckBox m_rangeKeyBinary = new JCheckBox("as Base64 binary");
+    private final JCheckBox m_hashKeyBinary = new JCheckBox("as Base64 binary");
+    private final JCheckBox m_rangeKeyBinary = new JCheckBox("as Base64 binary");
 
     /**
      * Creates a new instance of the dialog.
@@ -125,49 +123,46 @@ final class DynamoDBBatchDeleteNodeDialog extends NodeDialogPane {
     DynamoDBBatchDeleteNodeDialog() {
         addTab("Standard Settings", createStdSettingsTab());
     }
-    
+
     private JPanel createStdSettingsTab() {
-        JPanel stdSettings = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel stdSettings = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
-        
-        stdSettings.add(m_credentials, c);
-        
-        c.gridy++;
+
         m_table = new DynamoDBTablePanel(createFlowVariableModel(DynamoDBTableSettings.CFG_TABLE_NAME, Type.STRING),
                 this::getTableNames);
         stdSettings.add(m_table, c);
-        
+
         c.gridy++;
         stdSettings.add(createBatchWriteSettingsPanel(), c);
-        
+
         c.gridy++;
         stdSettings.add(createColumnSelectionPanel(), c);
-        
+
         c.gridy++;
         stdSettings.add(m_flowVars, c);
-        
+
         return stdSettings;
     }
-    
+
     private boolean mayBeBinaryColumn(final DataColumnSpec colSpec) {
         return colSpec != null && !colSpec.getType().equals(DataType.getMissingCell().getType())
                 && colSpec.getType().isCompatible(StringValue.class);
     }
 
     private JPanel createColumnSelectionPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
         c.anchor = GridBagConstraints.WEST;
-        
+
         panel.add(new JLabel("Hash Key Column"), c);
         c.gridx++;
         m_hashColumn.setRequired(true);
@@ -175,10 +170,10 @@ final class DynamoDBBatchDeleteNodeDialog extends NodeDialogPane {
             m_hashKeyBinary.setEnabled(mayBeBinaryColumn(m_hashColumn.getSelectedColumnAsSpec()));
         });
         panel.add(m_hashColumn, c);
-        
+
         c.gridx++;
         panel.add(m_hashKeyBinary, c);
-        
+
         c.gridx = 0;
         c.gridy++;
         panel.add(new JLabel("Range Key Column"), c);
@@ -188,39 +183,34 @@ final class DynamoDBBatchDeleteNodeDialog extends NodeDialogPane {
             m_rangeKeyBinary.setEnabled(mayBeBinaryColumn(m_rangeColumn.getSelectedColumnAsSpec()));
         });
         panel.add(m_rangeColumn, c);
-        
+
         c.gridx++;
         panel.add(m_rangeKeyBinary, c);
-        
+
         return panel;
     }
-    
+
     private JPanel createBatchWriteSettingsPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+        final JPanel panel = new JPanel(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.WEST;
         c.insets = new Insets(2, 2, 2, 2);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1;
-        
+
         panel.add(new JLabel("Batch Size"), c);
-        
+
         c.weightx = 0;
         c.gridx++;
         panel.add(m_batchSize, c);
         return panel;
     }
-    
+
     private List<String> getTableNames() {
         try {
-            if (m_conCredentials != null) {
-                return DynamoDBUtil.getTableNames(m_conCredentials, 20);
-            } else {
-                return DynamoDBUtil.getTableNames(m_table.getRegion(),
-                        m_table.getEndpoint(), m_credentials.getAccessKey(), m_credentials.getSecretKey(), 20);
-            }
-        } catch (Exception e1) {
+            return DynamoDBUtil.getTableNames(m_conCredentials, 20);
+        } catch (final Exception e1) {
             return null;
         }
     }
@@ -228,40 +218,33 @@ final class DynamoDBBatchDeleteNodeDialog extends NodeDialogPane {
     @Override
     protected void loadSettingsFrom(final NodeSettingsRO settings, final PortObjectSpec[] specs)
             throws NotConfigurableException {
-        
+
         m_settings.loadSettingsForDialog(settings);
-        
-        m_credentials.updateFromSettings(m_settings);
+
         m_table.updateFromSettings(m_settings);
 
         m_flowVars.setSelected(m_settings.publishConsumedCapUnits());
         m_batchSize.setValue(m_settings.getBatchSize());
-        
+
         m_hashColumn.update((DataTableSpec)specs[1], m_settings.getKeyColumns().getHashKeyColumn());
         m_rangeColumn.update((DataTableSpec)specs[1], m_settings.getKeyColumns().getRangeKeyColumn());
         m_hashKeyBinary.setSelected(m_settings.getKeyColumns().isHashKeyBinary());
         m_rangeKeyBinary.setSelected(m_settings.getKeyColumns().isRangeKeyBinary());
         m_hashKeyBinary.setEnabled(mayBeBinaryColumn(m_hashColumn.getSelectedColumnAsSpec()));
         m_rangeKeyBinary.setEnabled(mayBeBinaryColumn(m_rangeColumn.getSelectedColumnAsSpec()));
-        
-        m_conCredentials = null;
-        if (specs[0] != null) {
-            m_conCredentials = (CloudConnectionInformation)((CloudConnectionInformationPortObjectSpec)specs[0])
-                    .getConnectionInformation();
-            m_credentials.setCloudConnectionInfo(m_conCredentials);
-        }
-        
+
+        m_conCredentials = KNIMEUtil.getConnectionInformationInDialog(specs);
+
         m_table.setRegionOverwrite(m_conCredentials == null ? null : Region.of(m_conCredentials.getHost()));
     }
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
-        m_credentials.saveToSettings(m_settings);
         m_table.saveToSettings(m_settings);
-        
+
         m_settings.setPublishConsumedCapUnits(m_flowVars.isSelected());
         m_settings.setBatchSize((int)m_batchSize.getValue());
-        
+
         m_settings.getKeyColumns().setHashKeyColumn(m_hashColumn.getSelectedColumn());
         m_settings.getKeyColumns().setRangeKeyColumn(m_rangeColumn.getSelectedColumn());
         m_settings.getKeyColumns().setHashKeyBinary(m_hashKeyBinary.isSelected());

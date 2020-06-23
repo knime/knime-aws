@@ -78,7 +78,8 @@
     </fullDescription>
 
     <ports>
-        <inPort index="0" name="Amazon Credentials" optional="true">Credentials for an AWS account</inPort>
+        <inPort index="0" name="Amazon Credentials">Credentials for an AWS account</inPort>
         <inPort index="1" name="Flow Variables" optional="true">Flow variables for table settings</inPort>
+        <outPort index="0" name="Amazon Credentials">Credentials for an AWS account</outPort>
     </ports>
 </knimeNode>

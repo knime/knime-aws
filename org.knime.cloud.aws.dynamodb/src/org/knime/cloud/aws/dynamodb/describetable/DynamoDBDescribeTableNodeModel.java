@@ -100,77 +100,78 @@ import software.amazon.awssdk.services.dynamodb.model.TableDescription;
  */
 final class DynamoDBDescribeTableNodeModel extends NodeModel {
 
-    private DynamoDBDescribeTableSettings m_settings = new DynamoDBDescribeTableSettings();
+    private final DynamoDBDescribeTableSettings m_settings = new DynamoDBDescribeTableSettings();
 
     /**
      * Default Constructor.
      */
     DynamoDBDescribeTableNodeModel() {
-        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE_OPTIONAL},
-                new PortType[] {BufferedDataTable.TYPE, BufferedDataTable.TYPE});
+        super(new PortType[] {AmazonConnectionInformationPortObject.TYPE},
+                new PortType[] {AmazonConnectionInformationPortObject.TYPE, BufferedDataTable.TYPE,
+                		BufferedDataTable.TYPE});
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        return new PortObjectSpec[] {createTableInfoSpec(), createIndexInfoSpec()};
+        return new PortObjectSpec[] {inSpecs[0], createTableInfoSpec(), createIndexInfoSpec()};
     }
-    
+
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        
-        CloudConnectionInformation con = inObjects[0] == null
+
+        final CloudConnectionInformation con = inObjects[0] == null
                 ? null : ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
-        
-        DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, con);
-        
-        DataContainer tableInfoContainer = exec.createDataContainer(createTableInfoSpec());
-        DataContainer indexInfoContainer = exec.createDataContainer(createIndexInfoSpec());
-        
+
+        final DynamoDbClient ddb = DynamoDBUtil.createClient(m_settings, con);
+
+        final DataContainer tableInfoContainer = exec.createDataContainer(createTableInfoSpec());
+        final DataContainer indexInfoContainer = exec.createDataContainer(createIndexInfoSpec());
+
         TableDescription table;
         try {
             table = ddb.describeTable(
                 DescribeTableRequest.builder().tableName(m_settings.getTableName()).build()).table();
-        } catch (ResourceNotFoundException e) {
+        } catch (final ResourceNotFoundException e) {
             throw new InvalidSettingsException(
                     String.format("The given table \"%s\" does not exist.", m_settings.getTableName()), e);
         }
-        
-        Map<String, String> typeMapping = new HashMap<>();
-        for (AttributeDefinition def : table.attributeDefinitions()) {
+
+        final Map<String, String> typeMapping = new HashMap<>();
+        for (final AttributeDefinition def : table.attributeDefinitions()) {
             typeMapping.put(def.attributeName(), def.attributeTypeAsString());
         }
-        
+
         // General table info
-        DataCell tableName = new StringCell(table.tableName());
-        DataCell id = new StringCell(table.tableId());
-        DataCell arn = new StringCell(table.tableArn());
-        DataCell status = new StringCell(table.tableStatusAsString());
-        DataCell sizeBytes = new LongCell(table.tableSizeBytes());
-        DataCell itemCount = new LongCell(table.itemCount());
-        DataCell creationDateTime = ZonedDateTimeCellFactory.create(
+        final DataCell tableName = new StringCell(table.tableName());
+        final DataCell id = new StringCell(table.tableId());
+        final DataCell arn = new StringCell(table.tableArn());
+        final DataCell status = new StringCell(table.tableStatusAsString());
+        final DataCell sizeBytes = new LongCell(table.tableSizeBytes());
+        final DataCell itemCount = new LongCell(table.itemCount());
+        final DataCell creationDateTime = ZonedDateTimeCellFactory.create(
                 ZonedDateTime.ofInstant(table.creationDateTime(), ZoneId.systemDefault()));
-        
+
         // Provisioned throughput
-        DataCell readUnits = new LongCell(table.provisionedThroughput().readCapacityUnits());
-        DataCell writeUnits = new LongCell(table.provisionedThroughput().writeCapacityUnits());
-        DataCell lastDecrease = table.provisionedThroughput().lastDecreaseDateTime() == null ? DataType.getMissingCell()
+        final DataCell readUnits = new LongCell(table.provisionedThroughput().readCapacityUnits());
+        final DataCell writeUnits = new LongCell(table.provisionedThroughput().writeCapacityUnits());
+        final DataCell lastDecrease = table.provisionedThroughput().lastDecreaseDateTime() == null ? DataType.getMissingCell()
                 : ZonedDateTimeCellFactory.create(ZonedDateTime.ofInstant(
                         table.provisionedThroughput().lastDecreaseDateTime(), ZoneId.systemDefault()));
-        DataCell lastIncrease = table.provisionedThroughput().lastIncreaseDateTime() == null ? DataType.getMissingCell()
+        final DataCell lastIncrease = table.provisionedThroughput().lastIncreaseDateTime() == null ? DataType.getMissingCell()
                 : ZonedDateTimeCellFactory.create(ZonedDateTime.ofInstant(
                         table.provisionedThroughput().lastIncreaseDateTime(), ZoneId.systemDefault()));
-        DataCell nDecreasesToday = new LongCell(table.provisionedThroughput().numberOfDecreasesToday());
-        
+        final DataCell nDecreasesToday = new LongCell(table.provisionedThroughput().numberOfDecreasesToday());
+
         // Billing
-        DataCell billingMode = table.billingModeSummary() == null
+        final DataCell billingMode = table.billingModeSummary() == null
                 ? DataType.getMissingCell() : new StringCell(table.billingModeSummary().billingModeAsString());
-        
+
         // Keys
         DataCell hashKeyName = null;
         DataCell hashKeyType = null;
         DataCell rangeKeyName = DataType.getMissingCell();
         DataCell rangeKeyType = DataType.getMissingCell();
-        for (KeySchemaElement e : table.keySchema()) {
+        for (final KeySchemaElement e : table.keySchema()) {
             if (e.keyType() == KeyType.HASH) {
                 hashKeyName = new StringCell(e.attributeName());
                 hashKeyType = new StringCell(typeMapping.get(e.attributeName()));
@@ -179,50 +180,50 @@ final class DynamoDBDescribeTableNodeModel extends NodeModel {
                 rangeKeyType = new StringCell(typeMapping.get(e.attributeName()));
             }
         }
-        
+
         tableInfoContainer.addRowToTable(new DefaultRow(new RowKey("Table Info"),
                 tableName, id, arn, status, sizeBytes, itemCount, creationDateTime,
                 readUnits, writeUnits, lastDecrease, lastIncrease, nDecreasesToday, billingMode,
                 hashKeyName, hashKeyType, rangeKeyName, rangeKeyType));
-        
+
         tableInfoContainer.close();
-        
-        for (GlobalSecondaryIndexDescription gsid : table.globalSecondaryIndexes()) {
+
+        for (final GlobalSecondaryIndexDescription gsid : table.globalSecondaryIndexes()) {
             indexInfoContainer.addRowToTable(rowFromGlobalIndex(gsid, typeMapping));
         }
-        for (LocalSecondaryIndexDescription lsid : table.localSecondaryIndexes()) {
+        for (final LocalSecondaryIndexDescription lsid : table.localSecondaryIndexes()) {
             indexInfoContainer.addRowToTable(rowFromLocalIndex(lsid, typeMapping));
         }
-        
+
         indexInfoContainer.close();
-        
-        return new PortObject[] {(BufferedDataTable)tableInfoContainer.getTable(),
+
+        return new PortObject[] {inObjects[0], (BufferedDataTable)tableInfoContainer.getTable(),
                                  (BufferedDataTable)indexInfoContainer.getTable()};
     }
-    
+
     private DataRow rowFromLocalIndex(final LocalSecondaryIndexDescription lsid,
             final Map<String, String> typeMapping) {
-        DataCell indexType = new StringCell("local");
-        DataCell indexName = new StringCell(lsid.indexName());
-        DataCell indexArn = new StringCell(lsid.indexArn());
-        DataCell indexStatus = DataType.getMissingCell();
-        DataCell indexSizeBytes = new LongCell(lsid.indexSizeBytes());
-        DataCell indexItemCount = new LongCell(lsid.itemCount());
-        DataCell backfilling = DataType.getMissingCell();
+        final DataCell indexType = new StringCell("local");
+        final DataCell indexName = new StringCell(lsid.indexName());
+        final DataCell indexArn = new StringCell(lsid.indexArn());
+        final DataCell indexStatus = DataType.getMissingCell();
+        final DataCell indexSizeBytes = new LongCell(lsid.indexSizeBytes());
+        final DataCell indexItemCount = new LongCell(lsid.itemCount());
+        final DataCell backfilling = DataType.getMissingCell();
 
         // Provisioned throughput
-        DataCell indexReadUnits = DataType.getMissingCell();
-        DataCell indexWriteUnits = DataType.getMissingCell();
-        DataCell indexLastDecrease = DataType.getMissingCell();
-        DataCell indexLastIncrease = DataType.getMissingCell();
-        DataCell indexNDecreasesToday = DataType.getMissingCell();
-        
+        final DataCell indexReadUnits = DataType.getMissingCell();
+        final DataCell indexWriteUnits = DataType.getMissingCell();
+        final DataCell indexLastDecrease = DataType.getMissingCell();
+        final DataCell indexLastIncrease = DataType.getMissingCell();
+        final DataCell indexNDecreasesToday = DataType.getMissingCell();
+
         // Keys
         DataCell indexHashKeyName = null;
         DataCell indexHashKeyType = null;
         DataCell indexRangeKeyName = DataType.getMissingCell();
         DataCell indexRangeKeyType = DataType.getMissingCell();
-        for (KeySchemaElement e : lsid.keySchema()) {
+        for (final KeySchemaElement e : lsid.keySchema()) {
             if (e.keyType() == KeyType.HASH) {
                 indexHashKeyName = new StringCell(e.attributeName());
                 indexHashKeyType = new StringCell(typeMapping.get(e.attributeName()));
@@ -231,50 +232,50 @@ final class DynamoDBDescribeTableNodeModel extends NodeModel {
                 indexRangeKeyType = new StringCell(typeMapping.get(e.attributeName()));
             }
         }
-        
-        DataCell projectionType = new StringCell(lsid.projection().projectionTypeAsString());
+
+        final DataCell projectionType = new StringCell(lsid.projection().projectionTypeAsString());
         DataCell projection = DataType.getMissingCell();
         if (lsid.projection().projectionType() == ProjectionType.INCLUDE) {
             projection = CollectionCellFactory.createSetCell(
                     lsid.projection().nonKeyAttributes().stream()
-                    .map(s -> new StringCell(s)).collect(Collectors.toList()));
+                    .map(StringCell::new).collect(Collectors.toList()));
         }
-        
+
         return new DefaultRow(new RowKey(lsid.indexName()),
                 indexType, indexName, indexArn, indexStatus, indexSizeBytes, indexItemCount, backfilling,
                 indexReadUnits, indexWriteUnits, indexLastDecrease, indexLastIncrease, indexNDecreasesToday,
                 indexHashKeyName, indexHashKeyType, indexRangeKeyName, indexRangeKeyType,
                 projectionType, projection);
     }
-    
+
     private DataRow rowFromGlobalIndex(final GlobalSecondaryIndexDescription gsid,
             final Map<String, String> typeMapping) {
-        DataCell indexType = new StringCell("global");
-        DataCell indexName = new StringCell(gsid.indexName());
-        DataCell indexArn = new StringCell(gsid.indexArn());
-        DataCell indexStatus = new StringCell(gsid.indexStatusAsString());
-        DataCell indexSizeBytes = new LongCell(gsid.indexSizeBytes());
-        DataCell indexItemCount = new LongCell(gsid.itemCount());
-        DataCell backfilling = (gsid.backfilling() == null || !gsid.backfilling())
+        final DataCell indexType = new StringCell("global");
+        final DataCell indexName = new StringCell(gsid.indexName());
+        final DataCell indexArn = new StringCell(gsid.indexArn());
+        final DataCell indexStatus = new StringCell(gsid.indexStatusAsString());
+        final DataCell indexSizeBytes = new LongCell(gsid.indexSizeBytes());
+        final DataCell indexItemCount = new LongCell(gsid.itemCount());
+        final DataCell backfilling = (gsid.backfilling() == null || !gsid.backfilling())
                 ? BooleanCell.FALSE : BooleanCell.TRUE;
-        
+
         // Provisioned throughput
-        DataCell indexReadUnits = new LongCell(gsid.provisionedThroughput().readCapacityUnits());
-        DataCell indexWriteUnits = new LongCell(gsid.provisionedThroughput().writeCapacityUnits());
-        DataCell indexLastDecrease = gsid.provisionedThroughput().lastDecreaseDateTime() == null
+        final DataCell indexReadUnits = new LongCell(gsid.provisionedThroughput().readCapacityUnits());
+        final DataCell indexWriteUnits = new LongCell(gsid.provisionedThroughput().writeCapacityUnits());
+        final DataCell indexLastDecrease = gsid.provisionedThroughput().lastDecreaseDateTime() == null
                 ? DataType.getMissingCell() : ZonedDateTimeCellFactory.create(ZonedDateTime.ofInstant(
                         gsid.provisionedThroughput().lastDecreaseDateTime(), ZoneId.systemDefault()));
-        DataCell indexLastIncrease = gsid.provisionedThroughput().lastIncreaseDateTime() == null
+        final DataCell indexLastIncrease = gsid.provisionedThroughput().lastIncreaseDateTime() == null
                 ? DataType.getMissingCell() : ZonedDateTimeCellFactory.create(ZonedDateTime.ofInstant(
                         gsid.provisionedThroughput().lastIncreaseDateTime(), ZoneId.systemDefault()));
-        DataCell indexNDecreasesToday = new LongCell(gsid.provisionedThroughput().numberOfDecreasesToday());
-        
+        final DataCell indexNDecreasesToday = new LongCell(gsid.provisionedThroughput().numberOfDecreasesToday());
+
         // Keys
         DataCell indexHashKeyName = null;
         DataCell indexHashKeyType = null;
         DataCell indexRangeKeyName = DataType.getMissingCell();
         DataCell indexRangeKeyType = DataType.getMissingCell();
-        for (KeySchemaElement e : gsid.keySchema()) {
+        for (final KeySchemaElement e : gsid.keySchema()) {
             if (e.keyType() == KeyType.HASH) {
                 indexHashKeyName = new StringCell(e.attributeName());
                 indexHashKeyType = new StringCell(typeMapping.get(e.attributeName()));
@@ -283,13 +284,13 @@ final class DynamoDBDescribeTableNodeModel extends NodeModel {
                 indexRangeKeyType = new StringCell(typeMapping.get(e.attributeName()));
             }
         }
-        
-        DataCell projectionType = new StringCell(gsid.projection().projectionTypeAsString());
+
+        final DataCell projectionType = new StringCell(gsid.projection().projectionTypeAsString());
         DataCell projection = DataType.getMissingCell();
         if (gsid.projection().projectionType() == ProjectionType.INCLUDE) {
             projection = CollectionCellFactory.createSetCell(
                     gsid.projection().nonKeyAttributes().stream()
-                    .map(s -> new StringCell(s)).collect(Collectors.toList()));
+                    .map(StringCell::new).collect(Collectors.toList()));
         }
         return new DefaultRow(new RowKey(gsid.indexName()),
                 indexType, indexName, indexArn, indexStatus, indexSizeBytes, indexItemCount, backfilling,
@@ -299,7 +300,7 @@ final class DynamoDBDescribeTableNodeModel extends NodeModel {
     }
 
     private DataTableSpec createIndexInfoSpec() {
-        DataTableSpecCreator c = new DataTableSpecCreator();
+        final DataTableSpecCreator c = new DataTableSpecCreator();
         c.addColumns(
                 new DataColumnSpecCreator("type", StringCell.TYPE).createSpec(),
                 new DataColumnSpecCreator("name", StringCell.TYPE).createSpec(),
@@ -322,9 +323,9 @@ final class DynamoDBDescribeTableNodeModel extends NodeModel {
                 );
         return c.createSpec();
     }
-    
+
     private DataTableSpec createTableInfoSpec() {
-        DataTableSpecCreator c = new DataTableSpecCreator();
+        final DataTableSpecCreator c = new DataTableSpecCreator();
         c.addColumns(
                 new DataColumnSpecCreator("name", StringCell.TYPE).createSpec(),
                 new DataColumnSpecCreator("id", StringCell.TYPE).createSpec(),
@@ -376,7 +377,7 @@ final class DynamoDBDescribeTableNodeModel extends NodeModel {
      */
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        DynamoDBDescribeTableSettings s = new DynamoDBDescribeTableSettings();
+        final DynamoDBDescribeTableSettings s = new DynamoDBDescribeTableSettings();
         s.loadSettings(settings);
     }
 
