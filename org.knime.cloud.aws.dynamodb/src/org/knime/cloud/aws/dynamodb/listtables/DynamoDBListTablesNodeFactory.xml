@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<knimeNode icon="./ddblisttables.png" type="Source"
+<knimeNode icon="./ddblisttables.png" type="Other"
     xmlns="http://knime.org/node/v2.8" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://knime.org/node/v2.10 http://knime.org/node/v2.10.xsd">
-    <name>DynamoDB List Tables</name>
+    <name>Amazon DynamoDB List Tables</name>
     <shortDescription>
         Retrieves a list of available tables from DynamoDB.
     </shortDescription>
@@ -11,31 +11,6 @@
         <intro>
         This node lists all tables tied to an account in the given AWS region.
         </intro>
-        <option name="Static credentials">
-        If checked, credentials can be entered in the node dialog, otherwise the AWS default credentials provider chain is used,
-        which looks for credentials in this order:
-        <ul>
-        <li>
-        Environment Variables - AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, or AWS_ACCESS_KEY and AWS_SECRET_KEY
-        </li>
-        <li>
-        Java System Properties - aws.accessKeyId and aws.secretKey
-        </li>
-        <li>
-        Credential profiles file at the default location (~/.aws/credentials) shared by all AWS SDKs and the AWS CLI
-        </li>
-        <li>
-        Credentials delivered through the Amazon EC2 container service
-        if AWS_CONTAINER_CREDENTIALS_RELATIVE_URI" environment variable is set
-        and security manager has permission to access the variable,
-        </li>
-        <li>
-        Instance profile credentials delivered through the Amazon EC2 metadata service
-        </li>
-        </ul>
-        </option>
-        <option name="Access Key">The access key for access to the AWS infrastructure.</option>
-        <option name="Secret Key">The secret key for access to the AWS infrastructure.</option>
         <option name="Region">The region the table is in.</option>
         <option name="Custom Endpoint" optional="true">A custom endpoint if the default AWS endpoint should not be used, e.g. for DynamoDB Local.</option>
         <option name="Limit">The maximum number of table names to retrieve or 0 if all tables should be loaded.</option>

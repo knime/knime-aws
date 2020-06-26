@@ -315,22 +315,9 @@ public final class DynamoDBUtil {
      */
     public static DynamoDbClient createClient(final DynamoDBSettings settings,
             final CloudConnectionInformation con) throws Exception {
-        // Client is either created from a port object or from the settings
     	final String endpoint = settings.getEndpoint();
-        final AwsCredentialsProvider credentialProvider;
-        final Region region;
-        if (con != null) {
-        	region = Region.of(con.getHost());
-        	credentialProvider = getCredentialProvider(con);
-        } else {
-            region = settings.getRegion();
-            if (settings.isCredentialsGiven()) {
-            	credentialProvider = StaticCredentialsProvider
-                        .create(AwsBasicCredentials.create(settings.getAccessKey(), settings.getSecretKey()));
-            } else {
-            	credentialProvider = DefaultCredentialsProvider.create();
-            }
-        }
+        final Region region = Region.of(con.getHost());
+        final AwsCredentialsProvider credentialProvider = getCredentialProvider(con);
         return createClient(credentialProvider, endpoint, region);
     }
 
@@ -494,22 +481,6 @@ public final class DynamoDBUtil {
         return describeTable(tblSettings.getTableName(), tblSettings.getRegion(),
                 tblSettings.getEndpoint(), tblSettings.getAccessKey(), tblSettings.getSecretKey(), throwOnNotFound);
     }
-
-    /**
-	 * Queries a DynamoDB instance for a table description.
-	 * @param tableName the name of the table to get a description for
-	 * @param region the region the table is in
-	 * @param endpoint a custom endpoint or null/empty string for default endpoint
-	 * @param accessKey the access key of the user accessing the API
-	 * @param secretKey the secret key of the user accessing the API
-	 * @return a table description including key schema information
-	 * @throws InvalidSettingsException when the request was not successful
-	 * @throws ResourceNotFoundException when the table does not exist
-	 */
-    public static TableDescription describeTable(final String tableName, final Region region, final String endpoint,
-	        final String accessKey, final String secretKey) throws InvalidSettingsException {
-	    return describeTable(tableName, region, endpoint, accessKey, secretKey, true);
-	}
 
 	/**
 	 * Queries a DynamoDB instance for a table description.

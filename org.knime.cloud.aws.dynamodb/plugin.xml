@@ -67,7 +67,7 @@
             icon="icons/ddb.png"
             level-id="dynamodb"
             locked="true"
-            name="DynamoDB"
+            name="Amazon DynamoDB"
             path="/labs">
       </category>
 
