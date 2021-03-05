@@ -49,3 +49,4 @@ Bundle-ClassPath: .,
  lib/jackson-databind-2.9.8.jar,
  lib/sts-2.13.23.jar,
  lib/aws-query-protocol-2.13.23.jar
+Bundle-RequiredExecutionEnvironment: JavaSE-11
