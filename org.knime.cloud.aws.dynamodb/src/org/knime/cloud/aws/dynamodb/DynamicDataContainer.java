@@ -280,6 +280,7 @@ public class DynamicDataContainer {
                             cells[c] = row.getCell(idx);
                         }
                     }
+                    m_current.addRowToTable(new DefaultRow(row.getKey(), cells));
                 }
                 // Now add new rows from buffer
                 writeRowsFromBuffer();
