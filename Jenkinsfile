@@ -5,8 +5,7 @@ library "knime-pipeline@$BN"
 
 properties([
     pipelineTriggers([
-        upstream("knime-python/${env.BRANCH_NAME.replaceAll('/', '%2F')}" +
-            ", knime-json/${env.BRANCH_NAME.replaceAll('/', '%2F')}")
+        upstream("knime-json/${env.BRANCH_NAME.replaceAll('/', '%2F')}")
     ]),
     parameters([p2Tools.getP2pruningParameter()]),
     buildDiscarder(logRotator(numToKeepStr: '5')),
@@ -35,7 +34,7 @@ try {
             // 'knime-js-core','knime-svg', 'knime-product'
             //
             // All features (not plug-ins!) in the specified repositories will be installed.
-            repositories: ['knime-ap-repository-template', 'knime-json', 'knime-python'],
+            repositories: ['knime-ap-repository-template', 'knime-json', 'knime-python-legacy'],
             // an optional list of additional bundles/plug-ins from the repositories above that must be installed
             ius: ['org.knime.json.tests']
         ],
