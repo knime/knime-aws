@@ -51,7 +51,6 @@ package org.knime.cloud.aws.dynamodb.utils;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -60,8 +59,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -73,14 +70,13 @@ import javax.json.JsonValue;
 
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBSettings;
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
+import org.knime.cloud.aws.sdkv2.util.AWSCredentialHelper;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.InvalidSettingsException;
-import org.knime.core.util.KnimeEncryption;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -100,9 +96,6 @@ import software.amazon.awssdk.services.dynamodb.model.ListTablesResponse;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 import software.amazon.awssdk.services.dynamodb.model.TableDescription;
-import software.amazon.awssdk.services.sts.StsClient;
-import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
-import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 /**
  * General helper methods for DynamoDB API.
@@ -113,7 +106,9 @@ public final class DynamoDBUtil {
 
     private DynamoDBUtil() { }
 
-    /**
+	private static final String ROLE_SESSION_NAME = "KNIME_DynamoDB_Connection";
+
+	/**
      * String representing the binary data type for DynamoDB.
      */
     public static final String BINARY_TYPE = "B";
@@ -338,50 +333,7 @@ public final class DynamoDBUtil {
 	}
 
 	private static AwsCredentialsProvider getCredentialProvider(final CloudConnectionInformation con) {
-		final AwsCredentialsProvider credentialProvider;
-		final AwsCredentialsProvider conCredentialProvider;
-		if (con.useKeyChain()) {
-			conCredentialProvider = DefaultCredentialsProvider.create();
-		} else if (con.isUseAnonymous()) {
-			conCredentialProvider = AnonymousCredentialsProvider.create();
-		} else {
-		    final String accessKeyId = con.getUser();
-		    String secretAccessKey;
-			try {
-				secretAccessKey = KnimeEncryption.decrypt(con.getPassword());
-			} catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | IOException e) {
-				throw new IllegalStateException(e);
-			}
-		    conCredentialProvider = StaticCredentialsProvider
-		            .create(AwsBasicCredentials.create(accessKeyId, secretAccessKey));
-		}
-		if (con.switchRole()) {
-			credentialProvider = getRoleSwitchCredentialProvider(con, conCredentialProvider);
-		} else {
-			credentialProvider = conCredentialProvider;
-		}
-		return credentialProvider;
-	}
-
-	@SuppressWarnings("boxing")
-	private static AwsCredentialsProvider getRoleSwitchCredentialProvider(final CloudConnectionInformation con,
-			final AwsCredentialsProvider credentialProvider) {
-		final AssumeRoleRequest asumeRole = AssumeRoleRequest.builder().roleArn(buildARN(con)).durationSeconds(3600)
-		.roleSessionName("KNIME_DynamoDB_Connection").build();
-
-
-		final StsClient stsClient =
-				StsClient.builder().region(Region.of(con.getHost())).credentialsProvider(credentialProvider).build();
-
-		final StsAssumeRoleCredentialsProvider roleSwitchCredentialProvider =
-				StsAssumeRoleCredentialsProvider.builder().stsClient(stsClient).refreshRequest(asumeRole)
-				.asyncCredentialUpdateEnabled(true).build();
-		return roleSwitchCredentialProvider;
-    }
-
-
-	private static String buildARN(final CloudConnectionInformation connectionInformation) {
-	    return "arn:aws:iam::" + connectionInformation.getSwitchRoleAccount() + ":role/" + connectionInformation.getSwitchRoleName();
+		return AWSCredentialHelper.getCredentialProvider(con, ROLE_SESSION_NAME);
 	}
 
     /**
@@ -393,27 +345,6 @@ public final class DynamoDBUtil {
 	public static List<String> getTableNames(final CloudConnectionInformation con, final int limit) {
 	    return getTableNames(Region.of(con.getHost()), null, getCredentialProvider(con), limit);
 	}
-
-	/**
-     * Lists all tables for the given account.
-     * @param region the region in which the tables reside
-     * @param endpoint the custom endpoint (optional)
-     * @param accessKey the user's access kex
-     * @param secretKey the user's secret key
-     * @param limit the maximum number of table names to retrieve
-     * @return a list of table names
-     */
-	public static List<String> getTableNames(final Region region, final String endpoint,
-            final String accessKey, final String secretKey, final int limit) {
-    	final AwsCredentialsProvider credentialProvider;
-    	if (accessKey != null) {
-    		credentialProvider = StaticCredentialsProvider
-                    .create(AwsBasicCredentials.create(accessKey, secretKey));
-        } else {
-        	credentialProvider = DefaultCredentialsProvider.create();
-        }
-    	return getTableNames(region, endpoint, credentialProvider, limit);
-    }
 
     private static List<String> getTableNames(final Region region, final String endpoint,
     		final AwsCredentialsProvider credentialProvider, final int limit) {
