@@ -21,6 +21,7 @@ try {
                 // yes, we really need all this stuff. knime-cloud pulls in most of it...
 		repositories:  ['knime-aws',
 		    'knime-cloud',
+                    'knime-datageneration',
 		    'knime-js-base',
 		    'knime-json',
 		    'knime-filehandling',
