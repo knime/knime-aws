@@ -19,15 +19,18 @@ try {
     workflowTests.runTests(
         dependencies: [
                 // yes, we really need all this stuff. knime-cloud pulls in most of it...
-		repositories:  ['knime-aws',
-		    'knime-cloud',
-                    'knime-datageneration',
-		    'knime-js-base',
-		    'knime-json',
-		    'knime-filehandling',
-		    'knime-database',
-		    'knime-textprocessing',
-		    'knime-expressions'],
+		    repositories:  [
+                'knime-aws',
+                'knime-cloud',
+                'knime-database',
+                'knime-datageneration',
+                'knime-expressions',
+                'knime-filehandling',
+                'knime-jep',
+                'knime-js-base',
+                'knime-json',
+                'knime-textprocessing',
+            ],
         ]
     )
 
