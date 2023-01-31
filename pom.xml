@@ -21,23 +21,36 @@
 	</properties>
 
 	<modules>
+		<module>org.knime.cloud.aws.redshift</module>
 		<module>org.knime.cloud.aws.dynamodb</module>
+        <module>org.knime.cloud.aws.redshift/lib/redshift/fetch_jars</module>
+		<module>org.knime.features.cloud.aws.redshift</module>
 		<module>org.knime.features.cloud.aws.dynamodb</module>
 		<module>org.knime.update.aws</module>
 	</modules>
 
 	<!-- List all repositories required for compilation here. The variables are defined in knime-maven-parent/pom.xml. -->
 	<repositories>
-        <repository>
-            <id>p2-knime-base</id>
-            <layout>p2</layout>
-            <url>${knime.base.p2}</url>
-        </repository>
-        <repository>
-            <id>p2-knime-cloud</id>
-            <layout>p2</layout>
-            <url>${knime.cloud.p2}</url>
-        </repository>
+		<repository>
+			<id>p2-knime-base</id>
+			<layout>p2</layout>
+			<url>${knime.base.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-bigdata</id>
+			<layout>p2</layout>
+			<url>${knime.bigdata.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-bigdate-externals</id>
+			<layout>p2</layout>
+			<url>${knime.bigdata.externals.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-cloud</id>
+			<layout>p2</layout>
+			<url>${knime.cloud.p2}</url>
+		</repository>
 		<repository>
 			<id>p2-knime-core</id>
 			<layout>p2</layout>
@@ -48,26 +61,36 @@
 			<layout>p2</layout>
 			<url>${knime.core.ui.p2}</url>
 		</repository>
-        <repository>
-            <id>p2-knime-expressions</id>
-            <layout>p2</layout>
-            <url>${knime.expressions.p2}</url>
-        </repository>
-        <repository>
-            <id>p2-knime-filehandling</id>
-            <layout>p2</layout>
-            <url>${knime.filehandling.p2}</url>
-        </repository>
-        <repository>
-            <id>p2-knime-javasnippet</id>
-            <layout>p2</layout>
-            <url>${knime.javasnippet.p2}</url>
-        </repository>
-        <repository>
-            <id>p2-knime-json</id>
-            <layout>p2</layout>
-            <url>${knime.json.p2}</url>
-        </repository>
+		<repository>
+			<id>p2-knime-expressions</id>
+			<layout>p2</layout>
+			<url>${knime.expressions.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-filehandling</id>
+			<layout>p2</layout>
+			<url>${knime.filehandling.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-database</id>
+			<layout>p2</layout>
+			<url>${knime.database.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-kerberos</id>
+			<layout>p2</layout>
+			<url>${knime.kerberos.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-javasnippet</id>
+			<layout>p2</layout>
+			<url>${knime.javasnippet.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-json</id>
+			<layout>p2</layout>
+			<url>${knime.json.p2}</url>
+		</repository>
 		<repository>
 			<id>p2-knime-shared</id>
 			<layout>p2</layout>
@@ -78,11 +101,26 @@
 			<layout>p2</layout>
 			<url>${knime.tp.p2}</url>
 		</repository>
+		<repository>
+			<id>p2-knime-workbench</id>
+			<layout>p2</layout>
+			<url>${knime.workbench.p2}</url>
+		</repository>
         <repository>
-            <id>p2-knime-workbench</id>
+            <id>p2-knime-office365</id>
             <layout>p2</layout>
-            <url>${knime.workbench.p2}</url>
+            <url>${knime.office365.p2}</url>
         </repository>
+		<repository>
+			<id>p2-knime-js-core</id>
+			<layout>p2</layout>
+			<url>${knime.js.core.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-svg</id>
+			<layout>p2</layout>
+			<url>${knime.svg.p2}</url>
+		</repository>
 	</repositories>
 
 </project><!-- vim: set shiftwidth=4 expandtab smarttab: -->
