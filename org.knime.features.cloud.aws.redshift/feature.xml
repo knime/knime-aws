@@ -6,7 +6,7 @@
       provider-name="KNIME AG, Zurich, Switzerland">
 
    <description>
-      This feature contains nodes for interacting with Amazon Redshift. For full functionality please install the KNIME Amazon Redshift Driver as well.
+      This feature contains nodes for interacting with Amazon Redshift.
    </description>
 
    <copyright>
