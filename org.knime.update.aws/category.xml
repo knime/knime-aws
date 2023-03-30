@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
+   <feature id="org.knime.features.cloud.aws" version="0.0.0">
+       <category name="knime-aws" />
+   </feature>
+   <feature id="org.knime.features.cloud.aws.source" version="0.0.0">
+       <category name="knime-aws" />
+   </feature>
+   <feature id="org.knime.features.cloud.aws.mlservices" version="0.0.0">
+       <category name="knime-aws" />
+   </feature>
+   <feature id="org.knime.features.cloud.aws.mlservices.source" version="0.0.0">
+       <category name="knime-aws" />
+   </feature>
    <feature id="org.knime.features.cloud.aws.dynamodb" version="0.0.0">
        <category name="knime-aws" />
    </feature>   

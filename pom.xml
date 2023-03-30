@@ -21,10 +21,23 @@
 	</properties>
 
 	<modules>
+    <!-- this needs to go first because it ensures that jar files required by AWS SDK are present -->
+		<module>org.knime.cloud.aws.sdkv2/libs/fetch_jars</module>
+		<module>org.knime.cloud.aws.sdkv2</module>
+		
+		<module>org.knime.cloud.aws</module>
+		<module>org.knime.cloud.aws.filehandling</module>
+		<module>org.knime.cloud.aws.filehandling.tests</module>
+    <module>org.knime.cloud.aws.mlservices</module>
+		
+    <module>org.knime.cloud.aws.redshift/lib/redshift/fetch_jars</module>
 		<module>org.knime.cloud.aws.redshift</module>
+		
 		<module>org.knime.cloud.aws.dynamodb</module>
-        <module>org.knime.cloud.aws.redshift/lib/redshift/fetch_jars</module>
-		<module>org.knime.features.cloud.aws.redshift</module>
+
+		<module>org.knime.features.cloud.aws</module>
+		<module>org.knime.features.cloud.aws.mlservices</module>
+    <module>org.knime.features.cloud.aws.redshift</module>
 		<module>org.knime.features.cloud.aws.dynamodb</module>
 		<module>org.knime.update.aws</module>
 	</modules>
@@ -37,9 +50,19 @@
 			<url>${knime.base.p2}</url>
 		</repository>
 		<repository>
+			<id>p2-knime-core-ui</id>
+			<layout>p2</layout>
+			<url>${knime.core.ui.p2}</url>
+		</repository>
+		<repository>
 			<id>p2-knime-bigdata</id>
 			<layout>p2</layout>
 			<url>${knime.bigdata.p2}</url>
+		</repository>
+		<repository>
+			<id>p2-knime-kerberos</id>
+			<layout>p2</layout>
+			<url>${knime.kerberos.p2}</url>
 		</repository>
 		<repository>
 			<id>p2-knime-bigdate-externals</id>
@@ -57,16 +80,6 @@
 			<url>${knime.core.p2}</url>
 		</repository>
 		<repository>
-			<id>p2-knime-core-ui</id>
-			<layout>p2</layout>
-			<url>${knime.core.ui.p2}</url>
-		</repository>
-		<repository>
-			<id>p2-knime-expressions</id>
-			<layout>p2</layout>
-			<url>${knime.expressions.p2}</url>
-		</repository>
-		<repository>
 			<id>p2-knime-filehandling</id>
 			<layout>p2</layout>
 			<url>${knime.filehandling.p2}</url>
@@ -77,9 +90,9 @@
 			<url>${knime.database.p2}</url>
 		</repository>
 		<repository>
-			<id>p2-knime-kerberos</id>
+			<id>p2-knime-office365</id>
 			<layout>p2</layout>
-			<url>${knime.kerberos.p2}</url>
+			<url>${knime.office365.p2}</url>
 		</repository>
 		<repository>
 			<id>p2-knime-javasnippet</id>
@@ -96,6 +109,16 @@
 			<layout>p2</layout>
 			<url>${knime.shared.p2}</url>
 		</repository>
+    <repository>
+      <id>p2-knime-textprocessing</id>
+      <layout>p2</layout>
+      <url>${knime.textprocessing.p2}</url>
+    </repository>
+    <repository>
+      <id>p2-knime-svg</id>
+			<layout>p2</layout>
+			<url>${knime.svg.p2}</url>
+		</repository>
 		<repository>
 			<id>p2-knime-tp</id>
 			<layout>p2</layout>
@@ -106,20 +129,10 @@
 			<layout>p2</layout>
 			<url>${knime.workbench.p2}</url>
 		</repository>
-        <repository>
-            <id>p2-knime-office365</id>
-            <layout>p2</layout>
-            <url>${knime.office365.p2}</url>
-        </repository>
 		<repository>
 			<id>p2-knime-js-core</id>
 			<layout>p2</layout>
 			<url>${knime.js.core.p2}</url>
-		</repository>
-		<repository>
-			<id>p2-knime-svg</id>
-			<layout>p2</layout>
-			<url>${knime.svg.p2}</url>
 		</repository>
 	</repositories>
 
