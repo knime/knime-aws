@@ -727,13 +727,17 @@ license terms applicable to such Node, including when such Node is
 propagated with or for interoperation with KNIME.
    </license>
 
+   <requires>
+      <import feature="org.knime.features.cloud.core.deprecated"/>
+   </requires>
+
    <plugin
          id="org.knime.cloud.aws"
          download-size="0"
          install-size="0"
          version="0.0.0"
          unpack="false"/>
-         
+
    <plugin
          id="org.knime.cloud.aws.sdkv2"
          download-size="0"
@@ -743,13 +747,6 @@ propagated with or for interoperation with KNIME.
 
    <plugin
          id="org.knime.cloud.aws.filehandling"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.knime.cloud.core"
          download-size="0"
          install-size="0"
          version="0.0.0"

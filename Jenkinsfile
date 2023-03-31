@@ -26,6 +26,7 @@ try {
         workflowTests.runTests(
             dependencies: [
                 repositories: [
+                    'knime-aws',
                     'knime-bigdata',
                     'knime-bigdata-externals',
                     'knime-cloud',
