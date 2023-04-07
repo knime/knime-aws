@@ -48,7 +48,7 @@
  */
 package org.knime.cloud.aws.mlservices.utils.personalize;
 
-import com.amazonaws.services.personalize.model.Recipe;
+import software.amazon.awssdk.services.personalize.model.Recipe;
 
 /**
  * Enumeration of available recipe types.
@@ -61,7 +61,11 @@ public enum RecipeType {
         /** */
         PERSONALIZED_RANKING("PERSONALIZED_RANKING", "Personalized ranking"),
         /** */
-        RELATED_ITEMS("RELATED_ITEMS", "Related items");
+        RELATED_ITEMS("RELATED_ITEMS", "Related items"),
+        /** */
+        USER_SEGMENTATION("USER_SEGMENTATION", "User segmentation"),
+        /** */
+        TRENDING_NOW("TRENDING_NOW", "Trending now");
 
     private final String m_type;
 
@@ -92,7 +96,7 @@ public enum RecipeType {
      * @return the corresponding {@link RecipeType}
      */
     public static RecipeType ofRecipeType(final Recipe recipe) {
-        final String recipeType = recipe.getRecipeType();
+        final String recipeType = recipe.recipeType();
         if (recipeType.equals(USER_PERSONALIZATION.getType())) {
             return USER_PERSONALIZATION;
         }
@@ -101,6 +105,12 @@ public enum RecipeType {
         }
         if (recipeType.equals(RELATED_ITEMS.getType())) {
             return RELATED_ITEMS;
+        }
+        if (recipeType.equals(USER_SEGMENTATION.getType())) {
+            return USER_SEGMENTATION;
+        }
+        if (recipeType.equals(TRENDING_NOW.getType())) {
+            return TRENDING_NOW;
         }
         throw new IllegalStateException("Unknown recipe type: " + recipeType);
     }

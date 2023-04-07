@@ -80,11 +80,11 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.port.PortObjectSpec;
 
-import com.amazonaws.services.personalize.AmazonPersonalize;
-import com.amazonaws.services.personalize.model.DatasetGroupSummary;
-import com.amazonaws.services.personalize.model.DescribeRecipeRequest;
-import com.amazonaws.services.personalize.model.Recipe;
-import com.amazonaws.services.personalize.model.RecipeSummary;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
+import software.amazon.awssdk.services.personalize.model.DatasetGroupSummary;
+import software.amazon.awssdk.services.personalize.model.DescribeRecipeRequest;
+import software.amazon.awssdk.services.personalize.model.Recipe;
+import software.amazon.awssdk.services.personalize.model.RecipeSummary;
 
 /**
  * Node dialog for Amazon Personalize solution version creator node.
@@ -129,11 +129,20 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
 
     private final JRadioButton m_radioButtonRelatedItems = new JRadioButton(RecipeType.RELATED_ITEMS.toString());
 
+    private final JRadioButton m_radioButtonUserSegmentation =
+            new JRadioButton(RecipeType.USER_SEGMENTATION.toString());
+
+    private final JRadioButton m_radioButtonTrendingNow = new JRadioButton(RecipeType.TRENDING_NOW.toString());
+
     private final JComboBox<NameArnPair> m_comboBoxUserPersonalizationRecipeList = new JComboBox<>();
 
     private final JComboBox<NameArnPair> m_comboBoxPersonalizedRankingRecipeList = new JComboBox<>();
 
     private final JComboBox<NameArnPair> m_comboBoxRelatedItemsRecipeList = new JComboBox<>();
+
+    private final JComboBox<NameArnPair> m_comboBoxUserSegmentationRecipeList = new JComboBox<>();
+
+    private final JComboBox<NameArnPair> m_comboBoxTrendingNowRecipeList = new JComboBox<>();
 
     private final JLabel m_labelUserDefinedRecipeArn = new JLabel("Recipe ARN");
 
@@ -165,9 +174,13 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
         m_buttonGroupRecipeType.add(m_radioButtonUserPersonalization);
         m_buttonGroupRecipeType.add(m_radioButtonPersonalizedRanking);
         m_buttonGroupRecipeType.add(m_radioButtonRelatedItems);
+        m_buttonGroupRecipeType.add(m_radioButtonUserSegmentation);
+        m_buttonGroupRecipeType.add(m_radioButtonTrendingNow);
         m_radioButtonUserPersonalization.addChangeListener(l -> enableComponents());
         m_radioButtonPersonalizedRanking.addChangeListener(l -> enableComponents());
         m_radioButtonRelatedItems.addChangeListener(l -> enableComponents());
+        m_radioButtonUserSegmentation.addChangeListener(l -> enableComponents());
+        m_radioButtonTrendingNow.addChangeListener(l -> enableComponents());
 
         addTab("Options", initLayout());
     }
@@ -304,6 +317,16 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
         panelRecipeTypeSelection.add(m_radioButtonRelatedItems, gbc2);
         gbc2.gridx++;
         panelRecipeTypeSelection.add(m_comboBoxRelatedItemsRecipeList, gbc2);
+        gbc2.gridy++;
+        gbc2.gridx = 0;
+        panelRecipeTypeSelection.add(m_radioButtonUserSegmentation, gbc2);
+        gbc2.gridx++;
+        panelRecipeTypeSelection.add(m_comboBoxUserSegmentationRecipeList, gbc2);
+        gbc2.gridy++;
+        gbc2.gridx = 0;
+        panelRecipeTypeSelection.add(m_radioButtonTrendingNow, gbc2);
+        gbc2.gridx++;
+        panelRecipeTypeSelection.add(m_comboBoxTrendingNowRecipeList, gbc2);
         gbc2.gridx++;
         gbc2.weightx = 1;
         // Dummy label to keep combo boxes left and all same size
@@ -337,12 +360,19 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
             m_radioButtonUserPersonalization.setEnabled(m_radioButtonPredefinedRecipe.isSelected());
             m_radioButtonPersonalizedRanking.setEnabled(m_radioButtonPredefinedRecipe.isSelected());
             m_radioButtonRelatedItems.setEnabled(m_radioButtonPredefinedRecipe.isSelected());
+            m_radioButtonUserSegmentation.setEnabled(m_radioButtonPredefinedRecipe.isSelected());
+            m_radioButtonTrendingNow.setEnabled(m_radioButtonPredefinedRecipe.isSelected());
+
             m_comboBoxUserPersonalizationRecipeList.setEnabled(
                 m_radioButtonUserPersonalization.isEnabled() && m_radioButtonUserPersonalization.isSelected());
             m_comboBoxPersonalizedRankingRecipeList.setEnabled(
                 m_radioButtonPersonalizedRanking.isEnabled() && m_radioButtonPersonalizedRanking.isSelected());
             m_comboBoxRelatedItemsRecipeList
                 .setEnabled(m_radioButtonRelatedItems.isEnabled() && m_radioButtonRelatedItems.isSelected());
+            m_comboBoxUserSegmentationRecipeList
+                .setEnabled(m_radioButtonUserSegmentation.isEnabled() && m_radioButtonUserSegmentation.isSelected());
+            m_comboBoxTrendingNowRecipeList
+                .setEnabled(m_radioButtonTrendingNow.isEnabled() && m_radioButtonTrendingNow.isSelected());
 
             m_labelUserDefinedRecipeArn.setEnabled(m_radioButtonUserDefinedRecipe.isSelected());
             m_textFieldUserDefinedRecipeArn.setEnabled(m_radioButtonUserDefinedRecipe.isSelected());
@@ -380,9 +410,15 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
         } else if (m_radioButtonPersonalizedRanking.isSelected()) {
             nodeSettings.setPredefinedRecipeType(RecipeType.PERSONALIZED_RANKING);
             nodeSettings.setPredefinedRecipe((NameArnPair)m_comboBoxPersonalizedRankingRecipeList.getSelectedItem());
-        } else {
+        } else if (m_radioButtonRelatedItems.isSelected()) {
             nodeSettings.setPredefinedRecipeType(RecipeType.RELATED_ITEMS);
             nodeSettings.setPredefinedRecipe((NameArnPair)m_comboBoxRelatedItemsRecipeList.getSelectedItem());
+        } else if (m_radioButtonUserSegmentation.isSelected()) {
+            nodeSettings.setPredefinedRecipeType(RecipeType.USER_SEGMENTATION);
+            nodeSettings.setPredefinedRecipe((NameArnPair)m_comboBoxUserSegmentationRecipeList.getSelectedItem());
+        } else {
+            nodeSettings.setPredefinedRecipeType(RecipeType.TRENDING_NOW);
+            nodeSettings.setPredefinedRecipe((NameArnPair)m_comboBoxTrendingNowRecipeList.getSelectedItem());
         }
         nodeSettings.setUserDefinedRecipeArn(m_textFieldUserDefinedRecipeArn.getText());
         nodeSettings.setHyperparameterOpt(m_checkBoxHyperParamOpt.isSelected());
@@ -411,7 +447,7 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
         // List all existing dataset groups and solutions
         try (final AmazonPersonalizeConnection personalizeConnection =
             new AmazonPersonalizeConnection(connectionInformation)) {
-            final AmazonPersonalize personalizeClient = personalizeConnection.getClient();
+            final PersonalizeClient personalizeClient = personalizeConnection.getClient();
             final List<DatasetGroupSummary> listAllDatasetGroups =
                 AmazonPersonalizeUtils.listAllDatasetGroups(personalizeClient);
             if (listAllDatasetGroups.size() == 0) {
@@ -419,21 +455,23 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
             }
             final DefaultComboBoxModel<NameArnPair> comboBoxModel =
                 new DefaultComboBoxModel<NameArnPair>(listAllDatasetGroups.stream()
-                    .map(e -> NameArnPair.of(e.getName(), e.getDatasetGroupArn())).toArray(NameArnPair[]::new));
+                    .map(e -> NameArnPair.of(e.name(), e.datasetGroupArn())).toArray(NameArnPair[]::new));
             m_comboBoxDatasetGroupList.setModel(comboBoxModel);
 
             final DefaultComboBoxModel<NameArnPair> comboBoxModel2 =
                 new DefaultComboBoxModel<NameArnPair>(AmazonPersonalizeUtils.listAllSolutions(personalizeClient)
-                    .stream().map(e -> NameArnPair.of(e.getName(), e.getSolutionArn())).toArray(NameArnPair[]::new));
+                    .stream().map(e -> NameArnPair.of(e.name(), e.solutionArn())).toArray(NameArnPair[]::new));
             m_comboBoxExistingSolutions.setModel(comboBoxModel2);
 
             final DefaultComboBoxModel<NameArnPair> comboBoxModelUserPersonalization = new DefaultComboBoxModel<>();
             final DefaultComboBoxModel<NameArnPair> comboBoxModelPersonalizedRanking = new DefaultComboBoxModel<>();
             final DefaultComboBoxModel<NameArnPair> comboBoxModelRelatedItems = new DefaultComboBoxModel<>();
+            final DefaultComboBoxModel<NameArnPair> comboBoxModelUserSegmentation = new DefaultComboBoxModel<>();
+            final DefaultComboBoxModel<NameArnPair> comboBoxModelTrendingNow = new DefaultComboBoxModel<>();
             for (RecipeSummary rs : AmazonPersonalizeUtils.listAllRecipes(personalizeClient)) {
                 final Recipe recipe = personalizeClient
-                    .describeRecipe(new DescribeRecipeRequest().withRecipeArn(rs.getRecipeArn())).getRecipe();
-                final NameArnPair nameArnPair = NameArnPair.of(recipe.getName(), recipe.getRecipeArn());
+                    .describeRecipe(DescribeRecipeRequest.builder().recipeArn(rs.recipeArn()).build()).recipe();
+                final NameArnPair nameArnPair = NameArnPair.of(recipe.name(), recipe.recipeArn());
                 switch (RecipeType.ofRecipeType(recipe)) {
                     case USER_PERSONALIZATION:
                         comboBoxModelUserPersonalization.addElement(nameArnPair);
@@ -444,11 +482,19 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
                     case RELATED_ITEMS:
                         comboBoxModelRelatedItems.addElement(nameArnPair);
                         break;
+                    case USER_SEGMENTATION:
+                        comboBoxModelUserSegmentation.addElement(nameArnPair);
+                        break;
+                    case TRENDING_NOW:
+                        comboBoxModelTrendingNow.addElement(nameArnPair);
+                        break;
                 }
             }
             m_comboBoxUserPersonalizationRecipeList.setModel(comboBoxModelUserPersonalization);
             m_comboBoxPersonalizedRankingRecipeList.setModel(comboBoxModelPersonalizedRanking);
             m_comboBoxRelatedItemsRecipeList.setModel(comboBoxModelRelatedItems);
+            m_comboBoxUserSegmentationRecipeList.setModel(comboBoxModelUserSegmentation);
+            m_comboBoxTrendingNowRecipeList.setModel(comboBoxModelTrendingNow);
 
         } catch (Exception e) {
             throw new NotConfigurableException(e.getMessage());
@@ -484,6 +530,14 @@ final class AmazonPersonalizeCreateSolutionVersionNodeDialog extends NodeDialogP
         if (predefinedRecipeType == RecipeType.RELATED_ITEMS) {
             m_radioButtonRelatedItems.setSelected(true);
             m_comboBoxRelatedItemsRecipeList.setSelectedItem(predefinedRecipe);
+        }
+        if (predefinedRecipeType == RecipeType.USER_SEGMENTATION) {
+            m_radioButtonUserSegmentation.setSelected(true);
+            m_comboBoxUserSegmentationRecipeList.setSelectedItem(predefinedRecipe);
+        }
+        if (predefinedRecipeType == RecipeType.TRENDING_NOW) {
+            m_radioButtonTrendingNow.setSelected(true);
+            m_comboBoxTrendingNowRecipeList.setSelectedItem(predefinedRecipe);
         }
         m_textFieldUserDefinedRecipeArn.setText(nodeSettings.getUserDefinedRecipeArn());
         m_checkBoxHyperParamOpt.setSelected(nodeSettings.isHyperparameterOpt());

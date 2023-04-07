@@ -48,14 +48,16 @@
  */
 package org.knime.cloud.aws.mlservices.nodes.personalize;
 
+import java.time.Duration;
+
 import org.knime.base.filehandling.remote.files.Connection;
-import org.knime.cloud.aws.util.AWSCredentialHelper;
+import org.knime.cloud.aws.sdkv2.util.AWSCredentialHelper;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.NodeLogger;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.services.personalizeruntime.AmazonPersonalizeRuntime;
-import com.amazonaws.services.personalizeruntime.AmazonPersonalizeRuntimeClientBuilder;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.personalizeruntime.PersonalizeRuntimeClient;
 
 /**
  * Class used to establish a connection to the Amazon Personalize Runtime service.
@@ -73,8 +75,8 @@ public final class AmazonPersonalizeRuntimeConnection extends Connection {
     /** AWS connection information */
     private final CloudConnectionInformation m_connectionInformation;
 
-    /** The Amazon Personalize Runtime client */
-    private AmazonPersonalizeRuntime m_client;
+    /** The PersonalizeRuntimeClient */
+    private PersonalizeRuntimeClient m_client;
 
     /**
      * Creates a new instance of {@code PersonalizeConnection}.
@@ -88,7 +90,7 @@ public final class AmazonPersonalizeRuntimeConnection extends Connection {
     @Override
     public void open() throws Exception {
         if (!isOpen()) {
-            LOGGER.info("Create a new AmazonPersonalizeRuntimeClient in Region \"" + m_connectionInformation.getHost()
+            LOGGER.info("Create a new PersonalizeRuntimeClient in Region \"" + m_connectionInformation.getHost()
                 + "\" with connection timeout " + m_connectionInformation.getTimeout() + " milliseconds");
             try {
                 m_client = getPersonalizeRuntimeClient(m_connectionInformation);
@@ -100,21 +102,19 @@ public final class AmazonPersonalizeRuntimeConnection extends Connection {
     }
 
     /**
-     * Creates and returns a new instance of the {@link AmazonPersonalizeRuntime} client.
+     * Creates and returns a new instance of the {@link PersonalizeRuntimeClient} client.
      *
      * @param connInfo The connection information
-     * @return AmazonPersonalizeRuntime client
+     * @return PersonalizeRuntimeClient client
      */
-    private static final AmazonPersonalizeRuntime
-        getPersonalizeRuntimeClient(final CloudConnectionInformation connInfo) {
+    private static final PersonalizeRuntimeClient getPersonalizeRuntimeClient(final CloudConnectionInformation connInfo) {
+        final var clientConfig = ClientOverrideConfiguration.builder()
+                .apiCallTimeout(Duration.ofMillis(connInfo.getTimeout())).build();
 
-        final var clientConfig = new ClientConfiguration().withConnectionTimeout(connInfo.getTimeout());
-
-        return AmazonPersonalizeRuntimeClientBuilder.standard() //
-            .withClientConfiguration(clientConfig) //
-            .withRegion(connInfo.getHost()) //
-            .withCredentials(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME)) //
-            .build();
+        return PersonalizeRuntimeClient.builder()
+                .overrideConfiguration(clientConfig).region(Region.of(connInfo.getHost()))
+                .credentialsProvider(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME))
+                .build();
     }
 
     @Override
@@ -125,18 +125,18 @@ public final class AmazonPersonalizeRuntimeConnection extends Connection {
     @Override
     public void close() throws Exception {
         if (isOpen()) {
-            m_client.shutdown();
+            m_client.close();
             m_client = null;
         }
     }
 
     /**
-     * Returns an {@code AmazonPersonalizeRuntime} client.
+     * Returns an {@code PersonalizeRuntimeClient} client.
      *
-     * @return Returns an AmazonPersonalizeRuntime client
+     * @return Returns an PersonalizeRuntimeClient client
      * @throws Exception Thrown if client could not be created
      */
-    public final AmazonPersonalizeRuntime getClient() throws Exception {
+    public final PersonalizeRuntimeClient getClient() throws Exception {
         if (!isOpen()) {
             open();
         }

@@ -55,7 +55,6 @@ import org.knime.base.filehandling.remote.connectioninformation.port.ConnectionI
 import org.knime.base.filehandling.remote.connectioninformation.port.ConnectionInformationPortObjectSpec;
 import org.knime.cloud.aws.mlservices.utils.comprehend.ComprehendUtils;
 import org.knime.cloud.aws.util.AmazonConnectionInformationPortObject;
-import org.knime.cloud.aws.util.ConnectionUtils;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.StringValue;
@@ -81,7 +80,8 @@ import org.knime.core.node.streamable.RowOutput;
 import org.knime.core.node.streamable.StreamableOperator;
 import org.knime.ext.textprocessing.util.ColumnSelectionVerifier;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 /**
  * Base node model for all Amazon Comprehend nodes. Captures all the commonality between the implementations.
@@ -149,8 +149,9 @@ public abstract class BaseComprehendNodeModel extends NodeModel {
             if (cxnInfo == null) {
                 throw new InvalidSettingsException("No connection information available");
             }
+            final var serviceMetadata = ComprehendClient.serviceMetadata();
 
-            if (!ConnectionUtils.regionSupported(cxnInfo.getHost(), AmazonComprehend.ENDPOINT_PREFIX)) {
+            if (!serviceMetadata.regions().contains(Region.of(cxnInfo.getHost()))) {
                 throw new InvalidSettingsException(
                     "Unsupported region for the Amazon Comprehend service: " + cxnInfo.getHost());
             }
@@ -219,7 +220,7 @@ public abstract class BaseComprehendNodeModel extends NodeModel {
                 final RowInput input = (RowInput)inputs[DATA_PORT_IDX];
                 final RowOutput output = (RowOutput)outputs[0];
                 final ComprehendConnection connection = new ComprehendConnection(cxnInfo);
-                final AmazonComprehend comprehendClient = connection.getClient();
+                final ComprehendClient comprehendClient = connection.getClient();
                 op.compute(input, output, comprehendClient, textColIdx, exec, 0L);
                 input.close();
                 output.close();

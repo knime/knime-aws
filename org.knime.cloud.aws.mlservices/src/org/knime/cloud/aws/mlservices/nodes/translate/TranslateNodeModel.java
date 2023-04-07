@@ -54,7 +54,6 @@ import java.io.IOException;
 import org.knime.base.filehandling.remote.connectioninformation.port.ConnectionInformation;
 import org.knime.base.filehandling.remote.connectioninformation.port.ConnectionInformationPortObjectSpec;
 import org.knime.cloud.aws.util.AmazonConnectionInformationPortObject;
-import org.knime.cloud.aws.util.ConnectionUtils;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataTableSpec;
@@ -83,7 +82,8 @@ import org.knime.core.node.streamable.RowOutput;
 import org.knime.core.node.streamable.StreamableOperator;
 import org.knime.ext.textprocessing.util.ColumnSelectionVerifier;
 
-import com.amazonaws.services.translate.AmazonTranslate;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.translate.TranslateClient;
 
 /**
  * Use the Amazon Translate service to translate from a source to a target language.
@@ -188,8 +188,9 @@ class TranslateNodeModel extends NodeModel {
             if (cxnInfo == null) {
                 throw new InvalidSettingsException("No connection information available");
             }
+            final var serviceMetadata = TranslateClient.serviceMetadata();
 
-            if (!ConnectionUtils.regionSupported(cxnInfo.getHost(), AmazonTranslate.ENDPOINT_PREFIX)) {
+            if (!serviceMetadata.regions().contains(Region.of(cxnInfo.getHost()))) {
                 throw new InvalidSettingsException(
                     "Unsupported region for the Amazon Translate service: " + cxnInfo.getHost());
             }

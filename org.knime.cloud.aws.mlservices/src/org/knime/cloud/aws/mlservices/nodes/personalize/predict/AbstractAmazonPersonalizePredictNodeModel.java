@@ -77,7 +77,7 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.streamable.simple.SimpleStreamableFunctionNodeModel;
 import org.knime.core.util.UniqueNameGenerator;
 
-import com.amazonaws.services.personalizeruntime.AmazonPersonalizeRuntime;
+import software.amazon.awssdk.services.personalizeruntime.PersonalizeRuntimeClient;
 
 /**
  * The abstract node model of the Amazon Personalize prediction nodes.
@@ -132,7 +132,7 @@ public abstract class AbstractAmazonPersonalizePredictNodeModel<S extends Amazon
         colMap.put(itemsColIdx, "item list");
 
         m_warningSet = false;
-        final AmazonPersonalizeRuntime personalizeClient = personalizeConnection.getClient();
+        final PersonalizeRuntimeClient personalizeClient = personalizeConnection.getClient();
         return new SingleCellFactory(true,
             uniqueNameGenerator.newColumn(getOutputColumnName(), ListCell.getCollectionType(StringCell.TYPE))) {
 
@@ -164,7 +164,7 @@ public abstract class AbstractAmazonPersonalizePredictNodeModel<S extends Amazon
      * @param itemsColIdx the item list column index
      * @return the prediction
      */
-    protected abstract ArrayList<DataCell> predict(final AmazonPersonalizeRuntime personalizeClient, final DataRow row,
+    protected abstract ArrayList<DataCell> predict(final PersonalizeRuntimeClient personalizeClient, final DataRow row,
         final int userIdColIdx, final int itemIdColIdx, final int itemsColIdx);
 
     /**

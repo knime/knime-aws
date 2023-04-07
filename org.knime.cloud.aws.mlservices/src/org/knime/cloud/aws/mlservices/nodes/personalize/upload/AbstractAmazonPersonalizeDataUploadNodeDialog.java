@@ -82,9 +82,9 @@ import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterPanel;
 import org.knime.core.node.workflow.FlowVariable;
 
-import com.amazonaws.services.identitymanagement.model.AmazonIdentityManagementException;
-import com.amazonaws.services.personalize.AmazonPersonalize;
-import com.amazonaws.util.StringUtils;
+import software.amazon.awssdk.services.iam.model.IamException;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
+import software.amazon.awssdk.utils.StringUtils;
 
 /**
  * Abstract node dialog for Amazon Personalize data upload nodes.
@@ -380,12 +380,12 @@ public abstract class AbstractAmazonPersonalizeDataUploadNodeDialog<S extends Ab
         // Try to list all available roles
         try {
             final DefaultComboBoxModel<String> comboBoxModel = new DefaultComboBoxModel<String>(AmazonPersonalizeUtils
-                .listAllRoles(m_connectionInformation).stream().map(e -> e.getArn()).toArray(String[]::new));
+                .listAllRoles(m_connectionInformation).stream().map(e -> e.arn()).toArray(String[]::new));
             m_comboBoxRoleList.setModel(comboBoxModel);
             m_labelNoListRolePermissions.setVisible(false);
             m_radioButtonAvailableRole.setEnabled(true);
         } catch (Exception e) {
-            if (!(e instanceof AmazonIdentityManagementException)) {
+            if (!(e instanceof IamException)) {
                 throw new NotConfigurableException(e.getMessage());
             }
             // AmazonIdentityManagementException happens if the user does not have permissions to list roles
@@ -395,9 +395,9 @@ public abstract class AbstractAmazonPersonalizeDataUploadNodeDialog<S extends Ab
         // List all existing dataset groups
         try (final AmazonPersonalizeConnection personalizeConnection =
             new AmazonPersonalizeConnection(m_connectionInformation)) {
-            final AmazonPersonalize personalize = personalizeConnection.getClient();
+            final PersonalizeClient personalize = personalizeConnection.getClient();
             final DefaultComboBoxModel<String> comboBoxModel = new DefaultComboBoxModel<String>(AmazonPersonalizeUtils
-                .listAllDatasetGroups(personalize).stream().map(e -> e.getName()).toArray(String[]::new));
+                .listAllDatasetGroups(personalize).stream().map(e -> e.name()).toArray(String[]::new));
             m_comboBoxDatasetGroupList.setModel(comboBoxModel);
         } catch (Exception e) {
             throw new NotConfigurableException(e.getMessage());

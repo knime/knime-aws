@@ -67,7 +67,7 @@ import org.knime.ext.textprocessing.nodes.tagging.DocumentTagger;
 import org.knime.ext.textprocessing.util.TextContainerDataCellFactory;
 import org.knime.ext.textprocessing.util.TextContainerDataCellFactoryBuilder;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 /**
  * Abstract class wrapping common code of comprehend tagger operations.
@@ -102,7 +102,7 @@ public abstract class ComprehendTaggerOperation extends BaseComprehendOperation 
     }
 
     @Override
-    public final void compute(final RowInput in, final RowOutput out, final AmazonComprehend comprehendClient,
+    public final void compute(final RowInput in, final RowOutput out, final ComprehendClient comprehendClient,
         final int textColIdx, final ExecutionContext exec, final long rowCount)
         throws CanceledExecutionException, InterruptedException {
         // Create the tagger that uses the detect entities capability of the Comprehend
@@ -161,11 +161,11 @@ public abstract class ComprehendTaggerOperation extends BaseComprehendOperation 
     /**
      * Creates and returns a new instance of a specific implementation of a {@link DocumentTagger}.
      *
-     * @param comprehendClient The {@code AmazonComprehend} client used to call the service
+     * @param comprehendClient The {@code ComprehendClient} client used to call the service
      * @param languageCode The language code
      * @param tokenizerName The name of the word tokenizer
      * @return Returns a new instance of a specific implementation of a {@code DocumentTagger}
      */
-    protected abstract DocumentTagger getTagger(final AmazonComprehend comprehendClient, final String languageCode,
+    protected abstract DocumentTagger getTagger(final ComprehendClient comprehendClient, final String languageCode,
         final String tokenizerName);
 }

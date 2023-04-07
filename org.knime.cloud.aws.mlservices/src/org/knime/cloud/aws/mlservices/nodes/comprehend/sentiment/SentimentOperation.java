@@ -72,11 +72,11 @@ import org.knime.core.node.streamable.RowOutput;
 import org.knime.ext.textprocessing.data.Document;
 import org.knime.ext.textprocessing.data.DocumentValue;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
-import com.amazonaws.services.comprehend.model.BatchDetectSentimentItemResult;
-import com.amazonaws.services.comprehend.model.BatchDetectSentimentRequest;
-import com.amazonaws.services.comprehend.model.BatchDetectSentimentResult;
-import com.amazonaws.services.comprehend.model.SentimentScore;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectSentimentItemResult;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectSentimentRequest;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectSentimentResponse;
+import software.amazon.awssdk.services.comprehend.model.SentimentScore;
 
 /**
  * Implementation of the operation to obtain the sentiment of each sentence in an input document.
@@ -102,7 +102,7 @@ class SentimentOperation extends BaseComprehendOperation {
     }
 
     @Override
-    public void compute(final RowInput in, final RowOutput out, final AmazonComprehend comprehendClient,
+    public void compute(final RowInput in, final RowOutput out, final ComprehendClient comprehendClient,
         final int textColIdx, final ExecutionContext exec, final long rowCount)
         throws CanceledExecutionException, InterruptedException {
 
@@ -156,17 +156,17 @@ class SentimentOperation extends BaseComprehendOperation {
      * @throws InterruptedException Thrown if execution is canceled
      */
     @SuppressWarnings("null")
-    private final void processChunk(final RowOutput out, final AmazonComprehend comprehendClient,
+    private final void processChunk(final RowOutput out, final ComprehendClient comprehendClient,
         final int numInputColumns, final List<DataRow> rows, final List<String> texts, final Set<Integer> validRows)
         throws InterruptedException {
         final BatchDetectSentimentRequest detectSentimentRequest;
-        final BatchDetectSentimentResult detectSentimentResult;
+        final BatchDetectSentimentResponse detectSentimentResult;
         Iterator<BatchDetectSentimentItemResult> results = null;
         if (!texts.isEmpty()) {
-            detectSentimentRequest = new BatchDetectSentimentRequest().withTextList(texts)
-                .withLanguageCode(ComprehendUtils.LANG_MAP.getOrDefault(m_sourceLanguage, "en"));
+            detectSentimentRequest = BatchDetectSentimentRequest.builder().textList(texts)
+                .languageCode(ComprehendUtils.LANG_MAP.getOrDefault(m_sourceLanguage, "en")).build();
             detectSentimentResult = comprehendClient.batchDetectSentiment(detectSentimentRequest);
-            results = detectSentimentResult.getResultList().iterator();
+            results = detectSentimentResult.resultList().iterator();
         }
         final DataCell[] cells = new DataCell[numInputColumns + 5];
         for (int i = 0; i < rows.size(); i++) {
@@ -177,14 +177,14 @@ class SentimentOperation extends BaseComprehendOperation {
             if (validRows.contains(i)) {
                 // Grab scores for each sentiment category.
                 final BatchDetectSentimentItemResult result = results.next();
-                final SentimentScore score = result.getSentimentScore();
+                final SentimentScore score = result.sentimentScore();
 
                 // Copy the results to the new columns in the output.
-                cells[numInputColumns] = new StringCell(result.getSentiment());
-                cells[numInputColumns + 1] = new DoubleCell(score.getMixed());
-                cells[numInputColumns + 2] = new DoubleCell(score.getPositive());
-                cells[numInputColumns + 3] = new DoubleCell(score.getNeutral());
-                cells[numInputColumns + 4] = new DoubleCell(score.getNegative());
+                cells[numInputColumns] = new StringCell(result.sentimentAsString());
+                cells[numInputColumns + 1] = new DoubleCell(score.mixed());
+                cells[numInputColumns + 2] = new DoubleCell(score.positive());
+                cells[numInputColumns + 3] = new DoubleCell(score.neutral());
+                cells[numInputColumns + 4] = new DoubleCell(score.negative());
             } else {
                 Arrays.fill(cells, numInputColumns, numInputColumns + 5, DataType.getMissingCell());
             }

@@ -78,10 +78,10 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.ColumnSelectionPanel;
 import org.knime.core.node.util.DataValueColumnFilter;
 
-import com.amazonaws.services.personalize.AmazonPersonalize;
-import com.amazonaws.services.personalize.model.DescribeCampaignRequest;
-import com.amazonaws.services.personalize.model.DescribeRecipeRequest;
-import com.amazonaws.services.personalize.model.DescribeSolutionVersionRequest;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
+import software.amazon.awssdk.services.personalize.model.DescribeCampaignRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeRecipeRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeSolutionVersionRequest;
 
 /**
  * The abstract node dialog of the Amazon Personalize prediction nodes.
@@ -225,7 +225,7 @@ public abstract class AbstractAmazonPersonalizePredictNodeDialog<S extends Amazo
         // List all existing campaigns
         try (final AmazonPersonalizeConnection personalizeConnection =
             new AmazonPersonalizeConnection(connectionInformation)) {
-            final AmazonPersonalize personalizeClient = personalizeConnection.getClient();
+            final PersonalizeClient personalizeClient = personalizeConnection.getClient();
 
             // Filter only the campaigns that have a solution with the proper recipe type
             final DefaultComboBoxModel<NameArnPair> comboBoxModel = new DefaultComboBoxModel<NameArnPair>(
@@ -233,16 +233,16 @@ public abstract class AbstractAmazonPersonalizePredictNodeDialog<S extends Amazo
                     final String recipeType =
                         personalizeClient
                             .describeRecipe(
-                                new DescribeRecipeRequest().withRecipeArn(personalizeClient
+                                DescribeRecipeRequest.builder().recipeArn(personalizeClient
                                     .describeSolutionVersion(
-                                        new DescribeSolutionVersionRequest().withSolutionVersionArn(personalizeClient
+                                        DescribeSolutionVersionRequest.builder().solutionVersionArn(personalizeClient
                                             .describeCampaign(
-                                                new DescribeCampaignRequest().withCampaignArn(e.getCampaignArn()))
-                                            .getCampaign().getSolutionVersionArn()))
-                                    .getSolutionVersion().getRecipeArn()))
-                            .getRecipe().getRecipeType();
+                                                DescribeCampaignRequest.builder().campaignArn(e.campaignArn()).build())
+                                            .campaign().solutionVersionArn()).build())
+                                    .solutionVersion().recipeArn()).build())
+                            .recipe().recipeType();
                     return recipeType.equals(getRecipeType().getType());
-                }).map(e -> new NameArnPair(e.getName(), e.getCampaignArn())).toArray(NameArnPair[]::new));
+                }).map(e -> new NameArnPair(e.name(), e.campaignArn())).toArray(NameArnPair[]::new));
             m_comboBoxCampaigns.setModel(comboBoxModel);
             if (comboBoxModel.getSize() == 0) {
                 throw new NotConfigurableException("No campaign of type '" + getRecipeType().toString()

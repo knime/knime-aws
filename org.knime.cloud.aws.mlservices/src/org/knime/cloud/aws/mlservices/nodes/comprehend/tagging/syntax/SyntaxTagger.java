@@ -59,9 +59,9 @@ import org.knime.ext.textprocessing.data.UniversalDependenciesPOSTagSet;
 import org.knime.ext.textprocessing.nodes.tagging.AbstractDocumentTagger;
 import org.knime.ext.textprocessing.nodes.tagging.TaggedEntity;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
-import com.amazonaws.services.comprehend.model.DetectSyntaxRequest;
-import com.amazonaws.services.comprehend.model.DetectSyntaxResult;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.DetectSyntaxRequest;
+import software.amazon.awssdk.services.comprehend.model.DetectSyntaxResponse;
 
 /**
  * A tagger that uses the Amazon Comprehend service to detect the syntax of each
@@ -75,7 +75,7 @@ import com.amazonaws.services.comprehend.model.DetectSyntaxResult;
 final class SyntaxTagger extends AbstractDocumentTagger {
 
     /** The client used to call the service. */
-    private final AmazonComprehend m_client;
+    private final ComprehendClient m_client;
 
     /** The language code. */
     private final String m_languageCode;
@@ -83,11 +83,11 @@ final class SyntaxTagger extends AbstractDocumentTagger {
     /**
      * Creates a new instance of {@code SyntaxTagger}
      *
-     * @param client The {@code AmazonComprehend} client used to call the service
+     * @param client The {@code ComprehendClient} client used to call the service
      * @param languageCode The language code
      * @param tokenizerName Name of the word tokenizer
      */
-	SyntaxTagger(final AmazonComprehend client, final String languageCode, final String tokenizerName) {
+	SyntaxTagger(final ComprehendClient client, final String languageCode, final String tokenizerName) {
 		super(false, tokenizerName);
 		this.m_client = client;
 		this.m_languageCode = languageCode;
@@ -104,13 +104,13 @@ final class SyntaxTagger extends AbstractDocumentTagger {
 		final String textValue = sentence.getTextWithWsSuffix();
 
 		// Create the delete syntax request
-		final DetectSyntaxRequest request = new DetectSyntaxRequest().withText(textValue)
-				.withLanguageCode(m_languageCode);
+		final DetectSyntaxRequest request = DetectSyntaxRequest.builder().text(textValue)
+				.languageCode(m_languageCode).build();
 
-		final DetectSyntaxResult result = m_client.detectSyntax(request);
+		final DetectSyntaxResponse result = m_client.detectSyntax(request);
 
-		return result.getSyntaxTokens().stream()//
-				.map(token -> new TaggedEntity(token.getText(), token.getPartOfSpeech().getTag()))//
+		return result.syntaxTokens().stream()//
+				.map(token -> new TaggedEntity(token.text(), token.partOfSpeech().tagAsString()))//
 				.collect(Collectors.toList());
 	}
 

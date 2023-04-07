@@ -53,7 +53,7 @@ import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.data.DataTableSpec;
 import org.knime.ext.textprocessing.nodes.tagging.DocumentTagger;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 /**
  * The operation that is executed for each partition of the input data. This operation accesses the input
@@ -81,7 +81,7 @@ final class EntityTaggerOperation extends ComprehendTaggerOperation {
     }
 
     @Override
-    protected DocumentTagger getTagger(final AmazonComprehend comprehendClient, final String languageCode,
+    protected DocumentTagger getTagger(final ComprehendClient comprehendClient, final String languageCode,
         final String tokenizerName) {
         return new EntityTagger(comprehendClient, languageCode, tokenizerName);
     }

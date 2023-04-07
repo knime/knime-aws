@@ -63,9 +63,9 @@ import org.knime.core.data.container.ColumnRearranger;
 import org.knime.core.data.def.StringCell;
 import org.knime.core.node.InvalidSettingsException;
 
-import com.amazonaws.services.personalizeruntime.AmazonPersonalizeRuntime;
-import com.amazonaws.services.personalizeruntime.model.GetPersonalizedRankingRequest;
-import com.amazonaws.services.personalizeruntime.model.GetPersonalizedRankingResult;
+import software.amazon.awssdk.services.personalizeruntime.PersonalizeRuntimeClient;
+import software.amazon.awssdk.services.personalizeruntime.model.GetPersonalizedRankingRequest;
+import software.amazon.awssdk.services.personalizeruntime.model.GetPersonalizedRankingResponse;
 
 /**
  *
@@ -89,15 +89,15 @@ public class AmazonPersonalizePersonalizedRankingNodeModel
      * {@inheritDoc}
      */
     @Override
-    protected ArrayList<DataCell> predict(final AmazonPersonalizeRuntime personalizeClient, final DataRow row,
+    protected ArrayList<DataCell> predict(final PersonalizeRuntimeClient personalizeClient, final DataRow row,
         final int userIdColIdx, final int itemIdColIdx, final int itemsColIdx) {
         final String userId = ((StringValue)row.getCell(userIdColIdx)).getStringValue();
         final List<String> itemList = ((ListDataValue)row.getCell(itemsColIdx)).stream().filter(e -> !e.isMissing())
             .map(e -> ((StringValue)e).getStringValue()).collect(Collectors.toList());
-        final GetPersonalizedRankingResult personalizedRanking =
-            personalizeClient.getPersonalizedRanking(new GetPersonalizedRankingRequest()
-                .withCampaignArn(m_settings.getCampaign().getARN()).withUserId(userId).withInputList(itemList));
-        return personalizedRanking.getPersonalizedRanking().stream().map(item -> new StringCell(item.getItemId()))
+        final GetPersonalizedRankingResponse personalizedRanking =
+            personalizeClient.getPersonalizedRanking(GetPersonalizedRankingRequest.builder()
+                .campaignArn(m_settings.getCampaign().getARN()).userId(userId).inputList(itemList).build());
+        return personalizedRanking.personalizedRanking().stream().map(item -> new StringCell(item.itemId()))
             .collect(Collectors.toCollection(ArrayList::new));
     }
 

@@ -60,7 +60,8 @@ import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.util.filter.InputFilter;
 import org.knime.core.node.util.filter.column.DataColumnSpecFilterConfiguration;
 
-import com.amazonaws.util.StringUtils;
+import software.amazon.awssdk.utils.StringUtils;
+
 
 /**
  * Abstract node settings for Amazon Personalize data upload nodes.

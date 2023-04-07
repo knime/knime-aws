@@ -81,19 +81,19 @@ import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 
-import com.amazonaws.services.personalize.AmazonPersonalize;
-import com.amazonaws.services.personalize.model.AutoMLConfig;
-import com.amazonaws.services.personalize.model.CreateSolutionRequest;
-import com.amazonaws.services.personalize.model.CreateSolutionVersionRequest;
-import com.amazonaws.services.personalize.model.DescribeRecipeRequest;
-import com.amazonaws.services.personalize.model.DescribeSolutionRequest;
-import com.amazonaws.services.personalize.model.DescribeSolutionResult;
-import com.amazonaws.services.personalize.model.DescribeSolutionVersionRequest;
-import com.amazonaws.services.personalize.model.DescribeSolutionVersionResult;
-import com.amazonaws.services.personalize.model.GetSolutionMetricsRequest;
-import com.amazonaws.services.personalize.model.ListSolutionsRequest;
-import com.amazonaws.services.personalize.model.ListSolutionsResult;
-import com.amazonaws.services.personalize.model.SolutionConfig;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
+import software.amazon.awssdk.services.personalize.model.AutoMLConfig;
+import software.amazon.awssdk.services.personalize.model.CreateSolutionRequest;
+import software.amazon.awssdk.services.personalize.model.CreateSolutionVersionRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeRecipeRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeSolutionRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeSolutionResponse;
+import software.amazon.awssdk.services.personalize.model.DescribeSolutionVersionRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeSolutionVersionResponse;
+import software.amazon.awssdk.services.personalize.model.GetSolutionMetricsRequest;
+import software.amazon.awssdk.services.personalize.model.ListSolutionsRequest;
+import software.amazon.awssdk.services.personalize.model.ListSolutionsResponse;
+import software.amazon.awssdk.services.personalize.model.SolutionConfig;
 
 /**
  * Node model for Amazon Personalize solution version creator node.
@@ -136,7 +136,7 @@ final class AmazonPersonalizeCreateSolutionVersionNodeModel extends NodeModel {
         final CloudConnectionInformation cxnInfo =
             ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
         try (final AmazonPersonalizeConnection personalizeConnection = new AmazonPersonalizeConnection(cxnInfo)) {
-            final AmazonPersonalize personalizeClient = personalizeConnection.getClient();
+            final PersonalizeClient personalizeClient = personalizeConnection.getClient();
 
             // Create solution configuration or use existing one
             final String solutionArn;
@@ -148,10 +148,10 @@ final class AmazonPersonalizeCreateSolutionVersionNodeModel extends NodeModel {
 
             // Wait until the solution is active
             final DescribeSolutionRequest describeSolutionRequest =
-                new DescribeSolutionRequest().withSolutionArn(solutionArn);
+                DescribeSolutionRequest.builder().solutionArn(solutionArn).build();
             AmazonPersonalizeUtils.waitUntilActive(() -> {
-                DescribeSolutionResult describeSolution = personalizeClient.describeSolution(describeSolutionRequest);
-                final String status = describeSolution.getSolution().getStatus();
+                DescribeSolutionResponse describeSolution = personalizeClient.describeSolution(describeSolutionRequest);
+                final String status = describeSolution.solution().status();
                 exec.setMessage("Creating solution configuration (Status: " + status + ")");
                 return status.equals(Status.ACTIVE.getStatus());
             }, 100);
@@ -159,31 +159,31 @@ final class AmazonPersonalizeCreateSolutionVersionNodeModel extends NodeModel {
 
             // Create solution version
             final String solutionVersionArn =
-                personalizeClient.createSolutionVersion(new CreateSolutionVersionRequest().withSolutionArn(solutionArn))
-                    .getSolutionVersionArn();
+                personalizeClient.createSolutionVersion(CreateSolutionVersionRequest.builder().solutionArn(solutionArn).build())
+                    .solutionVersionArn();
 
             // Wait until solution version is active (or failed)
             final DescribeSolutionVersionRequest describeSolutionVersionRequest =
-                new DescribeSolutionVersionRequest().withSolutionVersionArn(solutionVersionArn);
+                DescribeSolutionVersionRequest.builder().solutionVersionArn(solutionVersionArn).build();
             AmazonPersonalizeUtils.waitUntilActive(() -> {
-                final DescribeSolutionVersionResult solutionVersionDescription =
+                final DescribeSolutionVersionResponse solutionVersionDescription =
                     personalizeClient.describeSolutionVersion(describeSolutionVersionRequest);
-                final String status = solutionVersionDescription.getSolutionVersion().getStatus();
+                final String status = solutionVersionDescription.solutionVersion().status();
                 exec.setMessage("Creating solution version (Status: " + status + ")");
                 if (status.equals(Status.CREATED_FAILED.getStatus())) {
                     throw new IllegalStateException("No solution version has been created. Reason: "
-                        + solutionVersionDescription.getSolutionVersion().getFailureReason());
+                        + solutionVersionDescription.solutionVersion().failureReason());
                 }
                 return status.equals(Status.ACTIVE.getStatus());
             }, 2000);
 
             // Retrieve the recipe type to put it into the output
-            final DescribeSolutionVersionResult solutionVersionDescription =
+            final DescribeSolutionVersionResponse solutionVersionDescription =
                 personalizeClient.describeSolutionVersion(describeSolutionVersionRequest);
             final String recipeType = personalizeClient
-                .describeRecipe(new DescribeRecipeRequest()
-                    .withRecipeArn(solutionVersionDescription.getSolutionVersion().getRecipeArn()))
-                .getRecipe().getRecipeType();
+                .describeRecipe(DescribeRecipeRequest.builder()
+                    .recipeArn(solutionVersionDescription.solutionVersion().recipeArn()).build())
+                .recipe().recipeType();
             //            final String recipeType = personalizeClient.describeRecipe(new DescribeRecipeRequest().withRecipeArn(
             //                personalizeClient.describeSolution(new DescribeSolutionRequest().withSolutionArn(solutionArn))
             //                    .getSolution().getRecipeArn()))
@@ -191,8 +191,8 @@ final class AmazonPersonalizeCreateSolutionVersionNodeModel extends NodeModel {
 
             // Create output
             final Map<String, Double> metrics = personalizeClient
-                .getSolutionMetrics(new GetSolutionMetricsRequest().withSolutionVersionArn(solutionVersionArn))
-                .getMetrics();
+                .getSolutionMetrics(GetSolutionMetricsRequest.builder().solutionVersionArn(solutionVersionArn).build())
+                .metrics();
             if (m_settings.isOutputSolutionVersionArnAsVar()) {
                 pushFlowVariableString("solution-version-ARN", solutionVersionArn);
             }
@@ -200,39 +200,39 @@ final class AmazonPersonalizeCreateSolutionVersionNodeModel extends NodeModel {
         }
     }
 
-    private String createSolution(final AmazonPersonalize personalizeClient) {
+    private String createSolution(final PersonalizeClient personalizeClient) {
         final NameArnPair datasetGroup = m_settings.getDatasetGroup();
         final RecipeSelection recipeSelection = m_settings.getRecipeSelection();
         final boolean isHPO = m_settings.isHyperparameterOpt();
 
         // Create the request
-        final CreateSolutionRequest createSolutionRequest =
-            new CreateSolutionRequest().withDatasetGroupArn(datasetGroup.getARN()).withPerformHPO(isHPO);
+        final var reqBuilder =
+            CreateSolutionRequest.builder().datasetGroupArn(datasetGroup.getARN()).performHPO(isHPO);
         if (recipeSelection == RecipeSelection.PREDEFINED) {
-            createSolutionRequest.setPerformAutoML(false);
-            createSolutionRequest.setRecipeArn(m_settings.getPredefinedRecipe().getARN());
+            reqBuilder.performAutoML(false);
+            reqBuilder.recipeArn(m_settings.getPredefinedRecipe().getARN());
         } else if (recipeSelection == RecipeSelection.USER_DEFINED) {
-            createSolutionRequest.setPerformAutoML(false);
-            createSolutionRequest.setRecipeArn(m_settings.getUserDefinedRecipeArn());
+            reqBuilder.performAutoML(false);
+            reqBuilder.recipeArn(m_settings.getUserDefinedRecipeArn());
         } else if (recipeSelection == RecipeSelection.AUTOML) {
-            createSolutionRequest.setPerformAutoML(true);
-            final SolutionConfig solutionConfig = new SolutionConfig();
-            solutionConfig.setAutoMLConfig(new AutoMLConfig().withRecipeList(AUTOML_RECIPES));
-            createSolutionRequest.setSolutionConfig(solutionConfig);
+            reqBuilder.performAutoML(true);
+            final var solutionConfig = SolutionConfig.builder()
+                    .autoMLConfig(AutoMLConfig.builder().recipeList(AUTOML_RECIPES).build()).build();
+            reqBuilder.solutionConfig(solutionConfig);
         } else {
             throw new IllegalStateException("Unexpected recipe selection: " + recipeSelection.name());
         }
 
-        final ListSolutionsResult solutions =
-            personalizeClient.listSolutions(new ListSolutionsRequest().withDatasetGroupArn(datasetGroup.getARN()));
+        final ListSolutionsResponse solutions =
+            personalizeClient.listSolutions(ListSolutionsRequest.builder().datasetGroupArn(datasetGroup.getARN()).build());
         final String solutionName = m_settings.getSolutionName();
-        final Optional<String> optionalSolutionArn = solutions.getSolutions().stream()
-            .filter(e -> e.getName().equals(solutionName)).map(e -> e.getSolutionArn()).findFirst();
+        final Optional<String> optionalSolutionArn = solutions.solutions().stream()
+            .filter(e -> e.name().equals(solutionName)).map(e -> e.solutionArn()).findFirst();
         if (optionalSolutionArn.isPresent()) {
             throw new IllegalStateException("A solution with the name '" + solutionName + "' already exists.");
         }
-        createSolutionRequest.setName(solutionName);
-        return personalizeClient.createSolution(createSolutionRequest).getSolutionArn();
+        reqBuilder.name(solutionName);
+        return personalizeClient.createSolution(reqBuilder.build()).solutionArn();
     }
 
     private static DataTableSpec createOutputSpec() {

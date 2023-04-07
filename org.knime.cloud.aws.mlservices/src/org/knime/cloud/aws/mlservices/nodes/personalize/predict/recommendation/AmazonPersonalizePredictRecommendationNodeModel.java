@@ -57,8 +57,8 @@ import org.knime.core.data.DataRow;
 import org.knime.core.data.StringValue;
 import org.knime.core.data.def.StringCell;
 
-import com.amazonaws.services.personalizeruntime.AmazonPersonalizeRuntime;
-import com.amazonaws.services.personalizeruntime.model.GetRecommendationsRequest;
+import software.amazon.awssdk.services.personalizeruntime.PersonalizeRuntimeClient;
+import software.amazon.awssdk.services.personalizeruntime.model.GetRecommendationsRequest;
 
 /**
  * The node model of the Amazon Personalize recommendation nodes.
@@ -72,20 +72,20 @@ public abstract class AmazonPersonalizePredictRecommendationNodeModel
      * {@inheritDoc}
      */
     @Override
-    protected ArrayList<DataCell> predict(final AmazonPersonalizeRuntime personalizeClient, final DataRow row,
+    protected ArrayList<DataCell> predict(final PersonalizeRuntimeClient personalizeClient, final DataRow row,
         final int userIdColIdx, final int itemIdColIdx, final int itemsColIdx) {
 
-        final GetRecommendationsRequest request = new GetRecommendationsRequest()
-            .withCampaignArn(m_settings.getCampaign().getValue()).withNumResults(m_settings.getNumResults());
+        final var reqBuilder = GetRecommendationsRequest.builder()
+            .campaignArn(m_settings.getCampaign().getValue()).numResults(m_settings.getNumResults());
         if (userIdColIdx >= 0) {
-            request.setUserId(((StringValue)row.getCell(userIdColIdx)).getStringValue());
+            reqBuilder.userId(((StringValue)row.getCell(userIdColIdx)).getStringValue());
         }
         if (itemIdColIdx >= 0) {
-            request.setItemId(((StringValue)row.getCell(itemIdColIdx)).getStringValue());
+            reqBuilder.itemId(((StringValue)row.getCell(itemIdColIdx)).getStringValue());
         }
-        final ArrayList<DataCell> recommendations = personalizeClient.getRecommendations(request).getItemList().stream()
-            .map(item -> new StringCell(item.getItemId())).collect(Collectors.toCollection(ArrayList::new));
-        return recommendations;
+        return personalizeClient.getRecommendations(reqBuilder.build())
+                .itemList().stream().map(item -> new StringCell(item.itemId()))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**

@@ -56,7 +56,7 @@ import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.streamable.BufferedDataTableRowOutput;
 import org.knime.core.node.streamable.DataTableRowInput;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 /**
  * Base implementation of a streaming operation for Comprehend nodes.
@@ -107,7 +107,7 @@ public abstract class BaseComprehendOperation implements ComprehendOperation {
         final BufferedDataTableRowOutput out = new BufferedDataTableRowOutput(dc);
         // Create a connection to the Comprehend service in the provided region
         final ComprehendConnection connection = new ComprehendConnection(m_cxnInfo);
-        final AmazonComprehend comprehendClient = connection.getClient();
+        final ComprehendClient comprehendClient = connection.getClient();
         // Access the input data table
         final int textColumnIdx = in.getDataTableSpec().findColumnIndex(m_textColumnName);
 

@@ -59,9 +59,9 @@ import org.knime.ext.textprocessing.data.Tag;
 import org.knime.ext.textprocessing.nodes.tagging.AbstractDocumentTagger;
 import org.knime.ext.textprocessing.nodes.tagging.TaggedEntity;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
-import com.amazonaws.services.comprehend.model.DetectEntitiesRequest;
-import com.amazonaws.services.comprehend.model.DetectEntitiesResult;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.DetectEntitiesRequest;
+import software.amazon.awssdk.services.comprehend.model.DetectEntitiesResponse;
 
 /**
  * A tagger that uses the Amazon Comprehend service to detect entities in each sentence of a {@code Document}. For each
@@ -74,7 +74,7 @@ import com.amazonaws.services.comprehend.model.DetectEntitiesResult;
 final class EntityTagger extends AbstractDocumentTagger {
 
     /** The client used to call the service. */
-    private final AmazonComprehend m_client;
+    private final ComprehendClient m_client;
 
     /** The language code. */
     private final String m_languageCode;
@@ -82,11 +82,11 @@ final class EntityTagger extends AbstractDocumentTagger {
     /**
      * Creates a new instance of {@code EntityTagger}
      *
-     * @param client The {@code AmazonComprehend} client used to call the service
+     * @param client The {@code ComprehendClient} client used to call the service
      * @param languageCode The language code
      * @param tokenizerName Name of the word tokenizer
      */
-    EntityTagger(final AmazonComprehend client, final String languageCode, final String tokenizerName) {
+    EntityTagger(final ComprehendClient client, final String languageCode, final String tokenizerName) {
         super(true, tokenizerName);
         this.m_client = client;
         this.m_languageCode = languageCode;
@@ -103,12 +103,12 @@ final class EntityTagger extends AbstractDocumentTagger {
         final String textValue = sentence.getTextWithWsSuffix();
 
         final DetectEntitiesRequest request =
-            new DetectEntitiesRequest().withText(textValue).withLanguageCode(m_languageCode);
+            DetectEntitiesRequest.builder().text(textValue).languageCode(m_languageCode).build();
 
-        final DetectEntitiesResult result = m_client.detectEntities(request);
+        final DetectEntitiesResponse result = m_client.detectEntities(request);
 
-        return result.getEntities().stream()//
-            .map(entity -> new TaggedEntity(entity.getText(), entity.getType()))//
+        return result.entities().stream()//
+            .map(entity -> new TaggedEntity(entity.text(), entity.typeAsString()))//
             .collect(Collectors.toList());
     }
 

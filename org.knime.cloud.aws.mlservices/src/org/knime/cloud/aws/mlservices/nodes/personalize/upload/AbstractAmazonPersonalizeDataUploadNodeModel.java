@@ -99,28 +99,28 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.util.FileUtil;
 
-import com.amazonaws.services.personalize.AmazonPersonalize;
-import com.amazonaws.services.personalize.model.CreateDatasetGroupRequest;
-import com.amazonaws.services.personalize.model.CreateDatasetGroupResult;
-import com.amazonaws.services.personalize.model.CreateDatasetImportJobRequest;
-import com.amazonaws.services.personalize.model.CreateDatasetRequest;
-import com.amazonaws.services.personalize.model.CreateSchemaRequest;
-import com.amazonaws.services.personalize.model.DataSource;
-import com.amazonaws.services.personalize.model.DatasetGroupSummary;
-import com.amazonaws.services.personalize.model.DatasetSchemaSummary;
-import com.amazonaws.services.personalize.model.DatasetSummary;
-import com.amazonaws.services.personalize.model.DeleteDatasetGroupRequest;
-import com.amazonaws.services.personalize.model.DeleteDatasetRequest;
-import com.amazonaws.services.personalize.model.DescribeDatasetGroupRequest;
-import com.amazonaws.services.personalize.model.DescribeDatasetGroupResult;
-import com.amazonaws.services.personalize.model.DescribeDatasetImportJobRequest;
-import com.amazonaws.services.personalize.model.DescribeDatasetImportJobResult;
-import com.amazonaws.services.personalize.model.InvalidInputException;
-import com.amazonaws.services.personalize.model.ListDatasetGroupsRequest;
-import com.amazonaws.services.personalize.model.ListDatasetGroupsResult;
-import com.amazonaws.services.personalize.model.ListDatasetsRequest;
-import com.amazonaws.services.personalize.model.ListDatasetsResult;
-import com.amazonaws.util.StringUtils;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
+import software.amazon.awssdk.services.personalize.model.CreateDatasetGroupRequest;
+import software.amazon.awssdk.services.personalize.model.CreateDatasetGroupResponse;
+import software.amazon.awssdk.services.personalize.model.CreateDatasetImportJobRequest;
+import software.amazon.awssdk.services.personalize.model.CreateDatasetRequest;
+import software.amazon.awssdk.services.personalize.model.CreateSchemaRequest;
+import software.amazon.awssdk.services.personalize.model.DataSource;
+import software.amazon.awssdk.services.personalize.model.DatasetGroupSummary;
+import software.amazon.awssdk.services.personalize.model.DatasetSchemaSummary;
+import software.amazon.awssdk.services.personalize.model.DatasetSummary;
+import software.amazon.awssdk.services.personalize.model.DeleteDatasetGroupRequest;
+import software.amazon.awssdk.services.personalize.model.DeleteDatasetRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeDatasetGroupRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeDatasetGroupResponse;
+import software.amazon.awssdk.services.personalize.model.DescribeDatasetImportJobRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeDatasetImportJobResponse;
+import software.amazon.awssdk.services.personalize.model.InvalidInputException;
+import software.amazon.awssdk.services.personalize.model.ListDatasetGroupsRequest;
+import software.amazon.awssdk.services.personalize.model.ListDatasetGroupsResponse;
+import software.amazon.awssdk.services.personalize.model.ListDatasetsRequest;
+import software.amazon.awssdk.services.personalize.model.ListDatasetsResponse;
+import software.amazon.awssdk.utils.StringUtils;
 
 /**
  * Abstract node model for Amazon Personalize data upload nodes.
@@ -254,7 +254,7 @@ public abstract class AbstractAmazonPersonalizeDataUploadNodeModel<S extends Abs
         return m_settings.getPrefixSchemaName();
     }
 
-    private String createSchema(final AmazonPersonalize personalizeClient, final DataTableSpec spec) {
+    private String createSchema(final PersonalizeClient personalizeClient, final DataTableSpec spec) {
         final StringBuilder schemaNameBuilder = new StringBuilder(getSchemaNamePrefix());
         FieldAssembler<Schema> fieldAssembler = createFieldAssembler(SCHEMA_NAMESPACE);
         for (final String colName : spec.getColumnNames()) {
@@ -287,16 +287,16 @@ public abstract class AbstractAmazonPersonalizeDataUploadNodeModel<S extends Abs
         // check if the same schema has been created before
         final List<DatasetSchemaSummary> existingSchemas = AmazonPersonalizeUtils.listAllSchemas(personalizeClient);
         final Optional<DatasetSchemaSummary> schemaSummary =
-            existingSchemas.stream().filter(e -> e.getName().equals(schemaName)).findAny();
+            existingSchemas.stream().filter(e -> e.name().equals(schemaName)).findAny();
         // if so, use this one again
         if (schemaSummary.isPresent()) {
-            return schemaSummary.get().getSchemaArn();
+            return schemaSummary.get().schemaArn();
         }
         // otherwise create new one
         final Schema schema = fieldAssembler.endRecord();
         final CreateSchemaRequest createSchemaRequest =
-            new CreateSchemaRequest().withName(schemaName).withSchema(schema.toString());
-        return personalizeClient.createSchema(createSchemaRequest).getSchemaArn();
+            CreateSchemaRequest.builder().name(schemaName).schema(schema.toString()).build();
+        return personalizeClient.createSchema(createSchemaRequest).schemaArn();
     }
 
     /**
@@ -330,7 +330,7 @@ public abstract class AbstractAmazonPersonalizeDataUploadNodeModel<S extends Abs
 
         // === Import data from S3 to Amazon Personalize service ===
         try (final AmazonPersonalizeConnection personalizeConnection = new AmazonPersonalizeConnection(cxnInfo)) {
-            final AmazonPersonalize personalizeClient = personalizeConnection.getClient();
+            final PersonalizeClient personalizeClient = personalizeConnection.getClient();
 
             // Create the dataset group ARN or use existing one
             final String datasetGroupArn = createDatasetGroup(personalizeClient, exec.createSubExecutionContext(0.2));
@@ -343,9 +343,9 @@ public abstract class AbstractAmazonPersonalizeDataUploadNodeModel<S extends Abs
             exec.setMessage("Importing dataset from S3");
             final String schemaArn = createSchema(personalizeClient, adaptedTable.getDataTableSpec());
             final String datasetArn = personalizeClient
-                .createDataset(new CreateDatasetRequest().withDatasetGroupArn(datasetGroupArn)
-                    .withDatasetType(m_datasetType).withName(m_settings.getDatasetName()).withSchemaArn(schemaArn))
-                .getDatasetArn();
+                .createDataset(CreateDatasetRequest.builder().datasetGroupArn(datasetGroupArn)
+                    .datasetType(m_datasetType).name(m_settings.getDatasetName()).schemaArn(schemaArn).build())
+                .datasetArn();
             try {
                 // Import the dataset from S3
                 importDataFromS3(personalizeClient, "s3:/" + uniqueFilePath, datasetArn, exec);
@@ -369,49 +369,48 @@ public abstract class AbstractAmazonPersonalizeDataUploadNodeModel<S extends Abs
         return null;
     }
 
-    private void importDataFromS3(final AmazonPersonalize personalizeClient, final String s3FilePath,
+    private void importDataFromS3(final PersonalizeClient personalizeClient, final String s3FilePath,
         final String datasetArn, final ExecutionContext exec) throws InterruptedException {
 
         // Start the job that imports the dataset from S3
-        final DataSource dataSource = new DataSource().withDataLocation(s3FilePath);
+        final DataSource dataSource = DataSource.builder().dataLocation(s3FilePath).build();
         final String jobName = m_settings.getPrefixImportJobName() + "-" + System.currentTimeMillis();
         final String datasetImportJobArn;
         try {
             datasetImportJobArn = personalizeClient
-                .createDatasetImportJob(new CreateDatasetImportJobRequest().withDatasetArn(datasetArn)
-                    .withRoleArn(m_settings.getIamServiceRoleArn()).withDataSource(dataSource).withJobName(jobName))
-                .getDatasetImportJobArn();
+                .createDatasetImportJob(CreateDatasetImportJobRequest.builder().datasetArn(datasetArn)
+                    .roleArn(m_settings.getIamServiceRoleArn()).dataSource(dataSource).jobName(jobName).build())
+                .datasetImportJobArn();
 
         } catch (InvalidInputException e) {
             throw new IllegalArgumentException(
                 "The input is invalid. The reason could be too many missing values in one of the input columns. Error "
-                    + "message from Amazon: " + e.getErrorMessage(),
-                e);
+                    + "message from Amazon: " + e.awsErrorDetails().errorMessage(), e);
         }
 
         // Wait until status of dataset is ACTIVE
-        final DescribeDatasetImportJobRequest describeDatasetImportJobRequest =
-            new DescribeDatasetImportJobRequest().withDatasetImportJobArn(datasetImportJobArn);
+        final var describeDatasetImportJobRequest =
+            DescribeDatasetImportJobRequest.builder().datasetImportJobArn(datasetImportJobArn).build();
         AmazonPersonalizeUtils.waitUntilActive(() -> {
-            final DescribeDatasetImportJobResult datasetImportJobDescription =
+            final DescribeDatasetImportJobResponse datasetImportJobDescription =
                 personalizeClient.describeDatasetImportJob(describeDatasetImportJobRequest);
-            final String status = datasetImportJobDescription.getDatasetImportJob().getStatus();
+            final String status = datasetImportJobDescription.datasetImportJob().status();
             exec.setMessage("Importing dataset from S3 (Status: " + status + ")");
             if (status.equals(Status.CREATED_FAILED.getStatus())) {
                 throw new IllegalStateException("No dataset has been created. Reason: "
-                    + datasetImportJobDescription.getDatasetImportJob().getFailureReason());
+                    + datasetImportJobDescription.datasetImportJob().failureReason());
             }
             return status.equals(Status.ACTIVE.getStatus());
         }, 2000);
     }
 
-    private void checkAlreadyExistingDataset(final AmazonPersonalize personalizeClient, final String datasetGroupArn,
+    private void checkAlreadyExistingDataset(final PersonalizeClient personalizeClient, final String datasetGroupArn,
         final ExecutionContext exec) throws InterruptedException {
         exec.setMessage("Checking already existing datasets");
-        final ListDatasetsResult listDatasets =
-            personalizeClient.listDatasets(new ListDatasetsRequest().withDatasetGroupArn(datasetGroupArn));
+        final ListDatasetsResponse listDatasets =
+            personalizeClient.listDatasets(ListDatasetsRequest.builder().datasetGroupArn(datasetGroupArn).build());
         final Optional<DatasetSummary> dataset =
-            listDatasets.getDatasets().stream().filter(e -> e.getDatasetType().equals(m_datasetType)).findFirst();
+            listDatasets.datasets().stream().filter(e -> e.datasetType().equals(m_datasetType)).findFirst();
         if (dataset.isPresent()) {
             if (m_settings.getOverwriteDatasetPolicy().equals(OverwritePolicy.ABORT.toString())) {
                 // Abort if dataset already exists
@@ -421,77 +420,77 @@ public abstract class AbstractAmazonPersonalizeDataUploadNodeModel<S extends Abs
             } else {
                 // Delete the existing dataset
                 exec.setMessage("Deleting existing dataset");
-                deleteDataset(personalizeClient, datasetGroupArn, dataset.get().getDatasetArn());
+                deleteDataset(personalizeClient, datasetGroupArn, dataset.get().datasetArn());
             }
         }
         exec.setProgress(1);
     }
 
-    private void deleteDataset(final AmazonPersonalize personalizeClient, final String datasetGroupArn,
+    private void deleteDataset(final PersonalizeClient personalizeClient, final String datasetGroupArn,
         final String datasetARN) throws InterruptedException {
-        personalizeClient.deleteDataset(new DeleteDatasetRequest().withDatasetArn(datasetARN));
+        personalizeClient.deleteDataset(DeleteDatasetRequest.builder().datasetArn(datasetARN).build());
 
-        final ListDatasetsRequest listDatasetsRequest = new ListDatasetsRequest().withDatasetGroupArn(datasetGroupArn);
+        final ListDatasetsRequest listDatasetsRequest = ListDatasetsRequest.builder().datasetGroupArn(datasetGroupArn).build();
         AmazonPersonalizeUtils.waitUntilActive(() -> {
-            final List<DatasetSummary> datasets = personalizeClient.listDatasets(listDatasetsRequest).getDatasets();
-            return !datasets.stream().anyMatch(e -> e.getDatasetType().equals(m_datasetType));
+            final List<DatasetSummary> datasets = personalizeClient.listDatasets(listDatasetsRequest).datasets();
+            return !datasets.stream().anyMatch(e -> e.datasetType().equals(m_datasetType));
         }, 500);
     }
 
     // Creates a new dataset group if not already existing
-    private String createDatasetGroup(final AmazonPersonalize personalizeClient, final ExecutionContext exec)
+    private String createDatasetGroup(final PersonalizeClient personalizeClient, final ExecutionContext exec)
         throws InterruptedException {
         exec.setMessage("Creating dataset group");
-        final ListDatasetGroupsRequest listDatasetGroupsRequest = new ListDatasetGroupsRequest();
-        final ListDatasetGroupsResult listDatasetGroups = personalizeClient.listDatasetGroups(listDatasetGroupsRequest);
+        final ListDatasetGroupsRequest listDatasetGroupsRequest = ListDatasetGroupsRequest.builder().build();
+        final ListDatasetGroupsResponse listDatasetGroups = personalizeClient.listDatasetGroups(listDatasetGroupsRequest);
         final String datasetGroupName = m_settings.getSelectedDatasetGroup();
         final String datasetGroupArn;
         final boolean existing =
-            listDatasetGroups.getDatasetGroups().stream().anyMatch(e -> e.getName().equals(datasetGroupName));
+            listDatasetGroups.datasetGroups().stream().anyMatch(e -> e.name().equals(datasetGroupName));
         if (!existing) {
             // Create new dataset group
-            final CreateDatasetGroupResult createDatasetGroup =
-                personalizeClient.createDatasetGroup(new CreateDatasetGroupRequest().withName(datasetGroupName));
-            datasetGroupArn = createDatasetGroup.getDatasetGroupArn();
+            final CreateDatasetGroupResponse createDatasetGroup =
+                personalizeClient.createDatasetGroup(CreateDatasetGroupRequest.builder().name(datasetGroupName).build());
+            datasetGroupArn = createDatasetGroup.datasetGroupArn();
         } else {
-            final Optional<DatasetGroupSummary> dataGroupSummary = listDatasetGroups.getDatasetGroups().stream()
-                .filter(e -> e.getName().equals(datasetGroupName)).findFirst();
+            final Optional<DatasetGroupSummary> dataGroupSummary = listDatasetGroups.datasetGroups().stream()
+                .filter(e -> e.name().equals(datasetGroupName)).findFirst();
             if (!dataGroupSummary.isPresent()) {
                 // should never happen
                 throw new IllegalStateException("Dataset group with name '" + datasetGroupName + "' not present.");
             }
-            datasetGroupArn = dataGroupSummary.get().getDatasetGroupArn();
+            datasetGroupArn = dataGroupSummary.get().datasetGroupArn();
         }
 
         // Wait until dataset group is created and ACTIVE (even if the group already existed, make sure it's ACTIVE)
-        final DescribeDatasetGroupRequest describeDatasetGroupRequest = new DescribeDatasetGroupRequest();
-        describeDatasetGroupRequest.setDatasetGroupArn(datasetGroupArn);
+        final DescribeDatasetGroupRequest describeDatasetGroupRequest = DescribeDatasetGroupRequest
+                .builder().datasetGroupArn(datasetGroupArn).build();
         AmazonPersonalizeUtils.waitUntilActive(() -> {
-            final DescribeDatasetGroupResult datasetGroupDescription =
+            final DescribeDatasetGroupResponse datasetGroupDescription =
                 personalizeClient.describeDatasetGroup(describeDatasetGroupRequest);
-            final String status = datasetGroupDescription.getDatasetGroup().getStatus();
+            final String status = datasetGroupDescription.datasetGroup().status();
             exec.setMessage("Creating dataset group (Status: " + status + ")");
             if (status.equals(Status.CREATED_FAILED.getStatus())) {
                 if (!existing) {
                     // Delete the dataset group that we tried to create
                     personalizeClient
-                        .deleteDatasetGroup(new DeleteDatasetGroupRequest().withDatasetGroupArn(datasetGroupArn));
+                        .deleteDatasetGroup(DeleteDatasetGroupRequest.builder().datasetGroupArn(datasetGroupArn).build());
                     // Wait until the dataset group is deleted (should usually be very quick but you never know...)
                     try {
                         AmazonPersonalizeUtils.waitUntilActive(() -> {
-                            return !personalizeClient.listDatasetGroups(listDatasetGroupsRequest).getDatasetGroups()
-                                .stream().anyMatch(e -> e.getName().equals(datasetGroupName));
+                            return !personalizeClient.listDatasetGroups(listDatasetGroupsRequest).datasetGroups()
+                                .stream().anyMatch(e -> e.name().equals(datasetGroupName));
                         }, 50);
                     } catch (InterruptedException e1) {
                         // unlikely case
                         // do nothing, the deletion will be further processed by amazon
                     }
                     throw new IllegalStateException("Dataset group creation failed. Reason: "
-                        + datasetGroupDescription.getDatasetGroup().getFailureReason());
+                        + datasetGroupDescription.datasetGroup().failureReason());
                 }
                 throw new IllegalStateException(
                     "The selected dataset group is in an invalid state: " + Status.CREATED_FAILED.getStatus()
-                        + ". Reason: " + datasetGroupDescription.getDatasetGroup().getFailureReason());
+                        + ". Reason: " + datasetGroupDescription.datasetGroup().failureReason());
             }
             return status.equals(Status.ACTIVE.getStatus());
         }, 500);

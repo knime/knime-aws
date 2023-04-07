@@ -53,7 +53,7 @@ import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.streamable.RowInput;
 import org.knime.core.node.streamable.RowOutput;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 /**
  * Generic interface for streaming operations in Comprehend nodes.
@@ -77,13 +77,13 @@ public interface ComprehendOperation {
      *
      * @param in streaming input data
      * @param out streaming output data
-     * @param comprehendClient he {@code AmazonComprehend} client used to call the service
+     * @param comprehendClient the {@code ComprehendClient} client used to call the service
      * @param textColIdx the index of the text column to process
      * @param exec execution context
      * @param rowCount the expected number of rows (useful when running in non-streaming mode)
      * @throws Exception thrown if computation could not be finished
      */
-    void compute(final RowInput in, final RowOutput out, final AmazonComprehend comprehendClient, final int textColIdx,
+    void compute(final RowInput in, final RowOutput out, final ComprehendClient comprehendClient, final int textColIdx,
         final ExecutionContext exec, final long rowCount) throws Exception;
 
 }

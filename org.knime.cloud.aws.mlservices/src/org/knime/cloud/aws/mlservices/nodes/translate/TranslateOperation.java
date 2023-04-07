@@ -67,9 +67,9 @@ import org.knime.core.node.streamable.RowOutput;
 import org.knime.ext.textprocessing.data.Document;
 import org.knime.ext.textprocessing.data.DocumentValue;
 
-import com.amazonaws.services.translate.AmazonTranslate;
-import com.amazonaws.services.translate.model.TranslateTextRequest;
-import com.amazonaws.services.translate.model.TranslateTextResult;
+import software.amazon.awssdk.services.translate.TranslateClient;
+import software.amazon.awssdk.services.translate.model.TranslateTextRequest;
+import software.amazon.awssdk.services.translate.model.TranslateTextResponse;
 
 /**
  * Class to provide functionality to translate the text of a column from one language to another
@@ -149,7 +149,7 @@ class TranslateOperation {
 
         // Create a connection to the Translate service in the provided region
         final TranslateConnection conn = new TranslateConnection(m_cxnInfo);
-        final AmazonTranslate translate = conn.getClient();
+        final TranslateClient translate = conn.getClient();
 
         int textColumnIdx = in.getDataTableSpec().findColumnIndex(m_textColumnName);
         long rowCounter = 0;
@@ -183,11 +183,11 @@ class TranslateOperation {
                 } else {
                     textValue = cell.toString();
                 }
-                final TranslateTextRequest request = new TranslateTextRequest().withText(textValue)
-                    .withSourceLanguageCode(m_sourceLangCode).withTargetLanguageCode(m_targetLangCode);
+                final TranslateTextRequest request = TranslateTextRequest.builder().text(textValue)
+                    .sourceLanguageCode(m_sourceLangCode).targetLanguageCode(m_targetLangCode).build();
 
-                final TranslateTextResult result = translate.translateText(request);
-                cells[numInputColumns] = new StringCell(result.getTranslatedText());
+                final TranslateTextResponse result = translate.translateText(request);
+                cells[numInputColumns] = new StringCell(result.translatedText());
             }
             // Create a new data row and push it to the output container.
             out.push(new DefaultRow(inputRow.getKey(), cells));

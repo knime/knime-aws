@@ -74,11 +74,11 @@ import org.knime.core.node.streamable.RowOutput;
 import org.knime.ext.textprocessing.data.Document;
 import org.knime.ext.textprocessing.data.DocumentValue;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
-import com.amazonaws.services.comprehend.model.BatchDetectDominantLanguageItemResult;
-import com.amazonaws.services.comprehend.model.BatchDetectDominantLanguageRequest;
-import com.amazonaws.services.comprehend.model.BatchDetectDominantLanguageResult;
-import com.amazonaws.services.comprehend.model.DominantLanguage;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectDominantLanguageItemResult;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectDominantLanguageRequest;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectDominantLanguageResponse;
+import software.amazon.awssdk.services.comprehend.model.DominantLanguage;
 
 /**
  * Implementation of the operation to obtain the dominant languages of each input document.
@@ -100,7 +100,7 @@ class LanguageOperation extends BaseComprehendOperation {
     }
 
     @Override
-    public void compute(final RowInput in, final RowOutput out, final AmazonComprehend comprehendClient,
+    public void compute(final RowInput in, final RowOutput out, final ComprehendClient comprehendClient,
         final int textColIdx, final ExecutionContext exec, final long rowCount)
         throws CanceledExecutionException, InterruptedException {
 
@@ -153,16 +153,16 @@ class LanguageOperation extends BaseComprehendOperation {
      * @throws InterruptedException Thrown if execution is canceled
      */
     @SuppressWarnings("null")
-    private static final void processChunk(final RowOutput out, final AmazonComprehend comprehendClient,
+    private static final void processChunk(final RowOutput out, final ComprehendClient comprehendClient,
         final int numInputColumns, final List<DataRow> rowBatch, final List<String> texts, final Set<Integer> validRows)
         throws InterruptedException {
         final BatchDetectDominantLanguageRequest detectDominantLanguageRequest;
-        final BatchDetectDominantLanguageResult detectDominantLanguageResult;
+        final BatchDetectDominantLanguageResponse detectDominantLanguageResult;
         Iterator<BatchDetectDominantLanguageItemResult> results = null;
         if (!texts.isEmpty()) {
-            detectDominantLanguageRequest = new BatchDetectDominantLanguageRequest().withTextList(texts);
+            detectDominantLanguageRequest = BatchDetectDominantLanguageRequest.builder().textList(texts).build();
             detectDominantLanguageResult = comprehendClient.batchDetectDominantLanguage(detectDominantLanguageRequest);
-            results = detectDominantLanguageResult.getResultList().iterator();
+            results = detectDominantLanguageResult.resultList().iterator();
         }
         final DataCell[] cells = new DataCell[numInputColumns + 3];
         for (int i = 0; i < rowBatch.size(); i++) {
@@ -173,11 +173,11 @@ class LanguageOperation extends BaseComprehendOperation {
             if (validRows.contains(i)) {
                 long outputRowIndex = 0;
                 // Push rows (one per language) to the output.
-                for (final DominantLanguage dominantLang : results.next().getLanguages()) {
+                for (final DominantLanguage dominantLang : results.next().languages()) {
                     // Copy the results to the new columns in the output.
-                    cells[numInputColumns] = new StringCell(code2Name(dominantLang.getLanguageCode()));
-                    cells[numInputColumns + 1] = new StringCell(dominantLang.getLanguageCode());
-                    cells[numInputColumns + 2] = new DoubleCell(dominantLang.getScore());
+                    cells[numInputColumns] = new StringCell(code2Name(dominantLang.languageCode()));
+                    cells[numInputColumns + 1] = new StringCell(dominantLang.languageCode());
+                    cells[numInputColumns + 2] = new DoubleCell(dominantLang.score());
 
                     // Create a new data row and push it to the output container.
                     out.push(new DefaultRow(new RowKey(row.getKey().getString() + "_" + outputRowIndex++), cells));

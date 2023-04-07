@@ -53,29 +53,29 @@ import java.util.List;
 import org.knime.cloud.aws.mlservices.nodes.personalize.AmazonIdentityManagementConnection;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.model.ListRolesRequest;
-import com.amazonaws.services.identitymanagement.model.ListRolesResult;
-import com.amazonaws.services.identitymanagement.model.Role;
-import com.amazonaws.services.personalize.AmazonPersonalize;
-import com.amazonaws.services.personalize.model.CampaignSummary;
-import com.amazonaws.services.personalize.model.DatasetGroupSummary;
-import com.amazonaws.services.personalize.model.DatasetSchemaSummary;
-import com.amazonaws.services.personalize.model.ListCampaignsRequest;
-import com.amazonaws.services.personalize.model.ListCampaignsResult;
-import com.amazonaws.services.personalize.model.ListDatasetGroupsRequest;
-import com.amazonaws.services.personalize.model.ListDatasetGroupsResult;
-import com.amazonaws.services.personalize.model.ListRecipesRequest;
-import com.amazonaws.services.personalize.model.ListRecipesResult;
-import com.amazonaws.services.personalize.model.ListSchemasRequest;
-import com.amazonaws.services.personalize.model.ListSchemasResult;
-import com.amazonaws.services.personalize.model.ListSolutionVersionsRequest;
-import com.amazonaws.services.personalize.model.ListSolutionVersionsResult;
-import com.amazonaws.services.personalize.model.ListSolutionsRequest;
-import com.amazonaws.services.personalize.model.ListSolutionsResult;
-import com.amazonaws.services.personalize.model.RecipeSummary;
-import com.amazonaws.services.personalize.model.SolutionSummary;
-import com.amazonaws.services.personalize.model.SolutionVersionSummary;
+import software.amazon.awssdk.services.iam.IamClient;
+import software.amazon.awssdk.services.iam.model.ListRolesRequest;
+import software.amazon.awssdk.services.iam.model.ListRolesResponse;
+import software.amazon.awssdk.services.iam.model.Role;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
+import software.amazon.awssdk.services.personalize.model.CampaignSummary;
+import software.amazon.awssdk.services.personalize.model.DatasetGroupSummary;
+import software.amazon.awssdk.services.personalize.model.DatasetSchemaSummary;
+import software.amazon.awssdk.services.personalize.model.ListCampaignsRequest;
+import software.amazon.awssdk.services.personalize.model.ListCampaignsResponse;
+import software.amazon.awssdk.services.personalize.model.ListDatasetGroupsRequest;
+import software.amazon.awssdk.services.personalize.model.ListDatasetGroupsResponse;
+import software.amazon.awssdk.services.personalize.model.ListRecipesRequest;
+import software.amazon.awssdk.services.personalize.model.ListRecipesResponse;
+import software.amazon.awssdk.services.personalize.model.ListSchemasRequest;
+import software.amazon.awssdk.services.personalize.model.ListSchemasResponse;
+import software.amazon.awssdk.services.personalize.model.ListSolutionVersionsRequest;
+import software.amazon.awssdk.services.personalize.model.ListSolutionVersionsResponse;
+import software.amazon.awssdk.services.personalize.model.ListSolutionsRequest;
+import software.amazon.awssdk.services.personalize.model.ListSolutionsResponse;
+import software.amazon.awssdk.services.personalize.model.RecipeSummary;
+import software.amazon.awssdk.services.personalize.model.SolutionSummary;
+import software.amazon.awssdk.services.personalize.model.SolutionVersionSummary;
 
 /**
  *
@@ -111,14 +111,16 @@ public class AmazonPersonalizeUtils {
      * @param personalize the amazon personalize client
      * @return all dataset groups
      */
-    public static List<DatasetGroupSummary> listAllDatasetGroups(final AmazonPersonalize personalize) {
-        final ListDatasetGroupsRequest listDatasetGroupsRequest = new ListDatasetGroupsRequest().withMaxResults(100);
-        ListDatasetGroupsResult listDatasetGroups = personalize.listDatasetGroups(listDatasetGroupsRequest);
-        List<DatasetGroupSummary> datasetGroups = listDatasetGroups.getDatasetGroups();
+    public static List<DatasetGroupSummary> listAllDatasetGroups(final PersonalizeClient personalize) {
+        final var listDatasetGroupsRequest = ListDatasetGroupsRequest.builder()
+                .maxResults(100).build();
+        ListDatasetGroupsResponse listDatasetGroups = personalize.listDatasetGroups(listDatasetGroupsRequest);
+        List<DatasetGroupSummary> datasetGroups = listDatasetGroups.datasetGroups();
         String nextToken;
-        while ((nextToken = listDatasetGroups.getNextToken()) != null) {
-            listDatasetGroups = personalize.listDatasetGroups(listDatasetGroupsRequest.withNextToken(nextToken));
-            datasetGroups.addAll(listDatasetGroups.getDatasetGroups());
+        while ((nextToken = listDatasetGroups.nextToken()) != null) {
+            listDatasetGroups = personalize.listDatasetGroups(ListDatasetGroupsRequest.builder()
+                .nextToken(nextToken).build());
+            datasetGroups.addAll(listDatasetGroups.datasetGroups());
         }
         return datasetGroups;
     }
@@ -127,14 +129,15 @@ public class AmazonPersonalizeUtils {
      * @param personalize the amazon personalize client
      * @return all recipes
      */
-    public static List<RecipeSummary> listAllRecipes(final AmazonPersonalize personalize) {
-        final ListRecipesRequest request = new ListRecipesRequest().withMaxResults(100);
-        ListRecipesResult result = personalize.listRecipes(request);
-        List<RecipeSummary> list = result.getRecipes();
+    public static List<RecipeSummary> listAllRecipes(final PersonalizeClient personalize) {
+        final var request = ListRecipesRequest.builder().maxResults(100).build();
+        ListRecipesResponse result = personalize.listRecipes(request);
+        List<RecipeSummary> list = result.recipes();
         String nextToken;
-        while ((nextToken = result.getNextToken()) != null) {
-            result = personalize.listRecipes(request.withNextToken(nextToken));
-            list.addAll(result.getRecipes());
+        while ((nextToken = result.nextToken()) != null) {
+            result = personalize.listRecipes(ListRecipesRequest.builder()
+                .nextToken(nextToken).build());
+            list.addAll(result.recipes());
         }
         return list;
     }
@@ -143,14 +146,15 @@ public class AmazonPersonalizeUtils {
      * @param personalize the amazon personalize client
      * @return all schemas
      */
-    public static List<DatasetSchemaSummary> listAllSchemas(final AmazonPersonalize personalize) {
-        final ListSchemasRequest request = new ListSchemasRequest().withMaxResults(100);
-        ListSchemasResult result = personalize.listSchemas(request);
-        List<DatasetSchemaSummary> list = result.getSchemas();
+    public static List<DatasetSchemaSummary> listAllSchemas(final PersonalizeClient personalize) {
+        final var request = ListSchemasRequest.builder().maxResults(100).build();
+        ListSchemasResponse result = personalize.listSchemas(request);
+        List<DatasetSchemaSummary> list = result.schemas();
         String nextToken;
-        while ((nextToken = result.getNextToken()) != null) {
-            result = personalize.listSchemas(request.withNextToken(nextToken));
-            list.addAll(result.getSchemas());
+        while ((nextToken = result.nextToken()) != null) {
+            result = personalize.listSchemas(ListSchemasRequest.builder()
+                .nextToken(nextToken).build());
+            list.addAll(result.schemas());
         }
         return list;
     }
@@ -159,14 +163,16 @@ public class AmazonPersonalizeUtils {
      * @param personalize the amazon personalize client
      * @return all solution versions
      */
-    public static List<SolutionVersionSummary> listAllSolutionVersions(final AmazonPersonalize personalize) {
-        final ListSolutionVersionsRequest request = new ListSolutionVersionsRequest().withMaxResults(100);
-        ListSolutionVersionsResult result = personalize.listSolutionVersions(request);
-        List<SolutionVersionSummary> list = result.getSolutionVersions();
+    public static List<SolutionVersionSummary> listAllSolutionVersions(final PersonalizeClient personalize) {
+        final var request = ListSolutionVersionsRequest.builder()
+                .maxResults(100).build();
+        ListSolutionVersionsResponse result = personalize.listSolutionVersions(request);
+        List<SolutionVersionSummary> list = result.solutionVersions();
         String nextToken;
-        while ((nextToken = result.getNextToken()) != null) {
-            result = personalize.listSolutionVersions(request.withNextToken(nextToken));
-            list.addAll(result.getSolutionVersions());
+        while ((nextToken = result.nextToken()) != null) {
+            result = personalize.listSolutionVersions(ListSolutionVersionsRequest.builder()
+                .nextToken(nextToken).build());
+            list.addAll(result.solutionVersions());
         }
         return list;
     }
@@ -175,14 +181,16 @@ public class AmazonPersonalizeUtils {
      * @param personalize the amazon personalize client
      * @return all solutions
      */
-    public static List<SolutionSummary> listAllSolutions(final AmazonPersonalize personalize) {
-        final ListSolutionsRequest request = new ListSolutionsRequest().withMaxResults(100);
-        ListSolutionsResult result = personalize.listSolutions(request);
-        List<SolutionSummary> list = result.getSolutions();
+    public static List<SolutionSummary> listAllSolutions(final PersonalizeClient personalize) {
+        final var request = ListSolutionsRequest.builder()
+                .maxResults(100).build();
+        ListSolutionsResponse result = personalize.listSolutions(request);
+        List<SolutionSummary> list = result.solutions();
         String nextToken;
-        while ((nextToken = result.getNextToken()) != null) {
-            result = personalize.listSolutions(request.withNextToken(nextToken));
-            list.addAll(result.getSolutions());
+        while ((nextToken = result.nextToken()) != null) {
+            result = personalize.listSolutions(ListSolutionsRequest.builder()
+                .nextToken(nextToken).build());
+            list.addAll(result.solutions());
         }
         return list;
     }
@@ -191,14 +199,16 @@ public class AmazonPersonalizeUtils {
      * @param personalize the amazon personalize client
      * @return all campaigns
      */
-    public static List<CampaignSummary> listAllCampaigns(final AmazonPersonalize personalize) {
-        final ListCampaignsRequest request = new ListCampaignsRequest().withMaxResults(100);
-        ListCampaignsResult result = personalize.listCampaigns(request);
-        List<CampaignSummary> list = result.getCampaigns();
+    public static List<CampaignSummary> listAllCampaigns(final PersonalizeClient personalize) {
+        final var request = ListCampaignsRequest.builder()
+                .maxResults(100).build();
+        ListCampaignsResponse result = personalize.listCampaigns(request);
+        List<CampaignSummary> list = result.campaigns();
         String nextToken;
-        while ((nextToken = result.getNextToken()) != null) {
-            result = personalize.listCampaigns(request.withNextToken(nextToken));
-            list.addAll(result.getCampaigns());
+        while ((nextToken = result.nextToken()) != null) {
+            result = personalize.listCampaigns(ListCampaignsRequest.builder()
+                .nextToken(nextToken).build());
+            list.addAll(result.campaigns());
         }
         return list;
     }
@@ -209,17 +219,17 @@ public class AmazonPersonalizeUtils {
      * @throws Exception if an exception occurs during establishing the connection to Amazon
      */
     public static List<Role> listAllRoles(final CloudConnectionInformation connectionInformation) throws Exception {
-        try (final AmazonIdentityManagementConnection connection =
-            new AmazonIdentityManagementConnection(connectionInformation)) {
-            final AmazonIdentityManagement client = connection.getClient();
+        try (final var connection = new AmazonIdentityManagementConnection(connectionInformation)) {
+            final IamClient client = connection.getClient();
+            final var listRolesRequest = ListRolesRequest.builder()
+                    .maxItems(1000).build();
 
-            final ListRolesRequest listRolesRequest = new ListRolesRequest().withMaxItems(1000);
-            ListRolesResult listRoles = client.listRoles(listRolesRequest);
-            List<Role> roles = listRoles.getRoles();
+            ListRolesResponse listRoles = client.listRoles(listRolesRequest);
+            List<Role> roles = listRoles.roles();
             String nextToken;
-            while ((nextToken = listRoles.getMarker()) != null) {
-                listRoles = client.listRoles(listRolesRequest.withMarker(nextToken));
-                roles.addAll(listRoles.getRoles());
+            while ((nextToken = listRoles.marker()) != null) {
+                listRoles = client.listRoles(ListRolesRequest.builder().marker(nextToken).build());
+                roles.addAll(listRoles.roles());
             }
             return roles;
         }

@@ -48,17 +48,18 @@
  */
 package org.knime.cloud.aws.mlservices.nodes.comprehend;
 
+import java.time.Duration;
+
 import org.knime.base.filehandling.remote.files.Connection;
-import org.knime.cloud.aws.util.AWSCredentialHelper;
+import org.knime.cloud.aws.sdkv2.util.AWSCredentialHelper;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.NodeLogger;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.services.comprehend.AmazonComprehend;
-import com.amazonaws.services.comprehend.AmazonComprehendClientBuilder;
-
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 /**
- * Class used to establish the connection to AmazonComprehend.
+ * Class used to establish the connection to ComprehendClient.
  *
  * @author Julian Bunzel, KNIME GmbH, Berlin, Germany
  */
@@ -72,8 +73,8 @@ class ComprehendConnection extends Connection {
     /** AWS connection information */
     private final CloudConnectionInformation m_connectionInformation;
 
-    /** The AmazonComprehend client */
-    private AmazonComprehend m_client;
+    /** The ComprehendClient client */
+    private ComprehendClient m_client;
 
     /**
      * Creates a new instance of {@code ComprehendConnection}.
@@ -87,7 +88,7 @@ class ComprehendConnection extends Connection {
     @Override
     public void open() throws Exception {
         if (!isOpen()) {
-            LOGGER.info("Create a new AmazonComprehendClient in Region \"" + m_connectionInformation.getHost()
+            LOGGER.info("Create a new ComprehendClient in Region \"" + m_connectionInformation.getHost()
                 + "\" with connection timeout " + m_connectionInformation.getTimeout() + " milliseconds");
             try {
                 m_client = getComprehendClient(m_connectionInformation);
@@ -99,19 +100,19 @@ class ComprehendConnection extends Connection {
     }
 
     /**
-     * Creates and returns a new instance of the {@link AmazonComprehend} client.
+     * Creates and returns a new instance of the {@link ComprehendClient} client.
      *
      * @param connInfo The connection information
-     * @return AmazonComprehend client
+     * @return ComprehendClient client
      */
-    private static AmazonComprehend getComprehendClient(final CloudConnectionInformation connInfo) {
-        final var clientConfig = new ClientConfiguration().withConnectionTimeout(connInfo.getTimeout());
+    private static ComprehendClient getComprehendClient(final CloudConnectionInformation connInfo) {
+        final var clientConfig = ClientOverrideConfiguration.builder()
+                .apiCallTimeout(Duration.ofMillis(connInfo.getTimeout())).build();
 
-        return AmazonComprehendClientBuilder.standard() //
-            .withClientConfiguration(clientConfig) //
-            .withRegion(connInfo.getHost()) //
-            .withCredentials(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME)) //
-            .build();
+        return ComprehendClient.builder()
+                .overrideConfiguration(clientConfig).region(Region.of(connInfo.getHost()))
+                .credentialsProvider(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME))
+                .build();
     }
 
     @Override
@@ -121,16 +122,16 @@ class ComprehendConnection extends Connection {
 
     @Override
     public void close() throws Exception {
-        m_client.shutdown();
+        m_client.close();
     }
 
     /**
-     * Returns an {@code AmazonComprehend} client-
+     * Returns an {@code ComprehendClient} client-
      *
-     * @return Returns an AmazonComprehend client
+     * @return Returns an ComprehendClient client
      * @throws Exception Thrown if client could not be created
      */
-    AmazonComprehend getClient() throws Exception {
+    ComprehendClient getClient() throws Exception {
         if (!isOpen()) {
             open();
         }

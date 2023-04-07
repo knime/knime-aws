@@ -48,14 +48,16 @@
  */
 package org.knime.cloud.aws.mlservices.nodes.personalize;
 
+import java.time.Duration;
+
 import org.knime.base.filehandling.remote.files.Connection;
-import org.knime.cloud.aws.util.AWSCredentialHelper;
+import org.knime.cloud.aws.sdkv2.util.AWSCredentialHelper;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.NodeLogger;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.iam.IamClient;
 
 /**
  * Class used to establish a connection to the Amazon Identity Management.
@@ -72,8 +74,8 @@ public final class AmazonIdentityManagementConnection extends Connection impleme
     /** AWS connection information */
     private final CloudConnectionInformation m_connectionInformation;
 
-    /** The Amazon Identity Management client */
-    private AmazonIdentityManagement m_client;
+    /** The IamClient client */
+    private IamClient m_client;
 
     /**
      * Creates a new instance of {@code AmazonIdentityManagementConnection}.
@@ -87,7 +89,7 @@ public final class AmazonIdentityManagementConnection extends Connection impleme
     @Override
     public void open() throws Exception {
         if (!isOpen()) {
-            LOGGER.info("Create a new AmazonIdentityManagement in Region \"" + m_connectionInformation.getHost()
+            LOGGER.info("Create a new IamClient in Region \"" + m_connectionInformation.getHost()
                 + "\" with connection timeout " + m_connectionInformation.getTimeout() + " milliseconds");
             try {
                 m_client = getIdentityManagementClient(m_connectionInformation);
@@ -99,21 +101,19 @@ public final class AmazonIdentityManagementConnection extends Connection impleme
     }
 
     /**
-     * Creates and returns a new instance of the {@link AmazonIdentityManagement} client.
+     * Creates and returns a new instance of the {@link IamClient} client.
      *
      * @param connInfo The connection information
-     * @return AmazonIdentityManagement client
+     * @return IamClient client
      */
-    private static final AmazonIdentityManagement
-        getIdentityManagementClient(final CloudConnectionInformation connInfo) {
+    private static final IamClient getIdentityManagementClient(final CloudConnectionInformation connInfo) {
+        final var clientConfig = ClientOverrideConfiguration.builder()
+                .apiCallTimeout(Duration.ofMillis(connInfo.getTimeout())).build();
 
-        final var clientConfig = new ClientConfiguration().withConnectionTimeout(connInfo.getTimeout());
-
-        return AmazonIdentityManagementClientBuilder.standard() //
-            .withClientConfiguration(clientConfig) //
-            .withRegion(connInfo.getHost()) //
-            .withCredentials(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME)) //
-            .build();
+        return IamClient.builder()
+                .overrideConfiguration(clientConfig).region(Region.of(connInfo.getHost()))
+                .credentialsProvider(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME))
+                .build();
     }
 
     @Override
@@ -124,18 +124,18 @@ public final class AmazonIdentityManagementConnection extends Connection impleme
     @Override
     public void close() throws Exception {
         if (isOpen()) {
-            m_client.shutdown();
+            m_client.close();
             m_client = null;
         }
     }
 
     /**
-     * Returns an {@code AmazonIdentityManagement} client.
+     * Returns an {@code IamClient} client.
      *
-     * @return Returns an AmazonIdentityManagement client
+     * @return Returns an IamClient client
      * @throws Exception Thrown if client could not be created
      */
-    public final AmazonIdentityManagement getClient() throws Exception {
+    public final IamClient getClient() throws Exception {
         if (!isOpen()) {
             open();
         }

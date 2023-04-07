@@ -67,12 +67,12 @@ import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 
-import com.amazonaws.services.personalize.AmazonPersonalize;
-import com.amazonaws.services.personalize.model.CreateCampaignRequest;
-import com.amazonaws.services.personalize.model.CreateCampaignResult;
-import com.amazonaws.services.personalize.model.DeleteCampaignRequest;
-import com.amazonaws.services.personalize.model.DescribeCampaignRequest;
-import com.amazonaws.services.personalize.model.DescribeCampaignResult;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
+import software.amazon.awssdk.services.personalize.model.CreateCampaignRequest;
+import software.amazon.awssdk.services.personalize.model.CreateCampaignResponse;
+import software.amazon.awssdk.services.personalize.model.DeleteCampaignRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeCampaignRequest;
+import software.amazon.awssdk.services.personalize.model.DescribeCampaignResponse;
 
 /**
  * Node model for Amazon Personalize campaign creator node.
@@ -108,27 +108,28 @@ final class AmazonPersonalizeCreateCampaignNodeModel extends NodeModel {
         final CloudConnectionInformation cxnInfo =
             ((AmazonConnectionInformationPortObject)inObjects[0]).getConnectionInformation();
 
-        try (final AmazonPersonalizeConnection personalizeConnection = new AmazonPersonalizeConnection(cxnInfo)) {
-            final AmazonPersonalize personalizeClient = personalizeConnection.getClient();
-            final CreateCampaignRequest createCampaignRequest = new CreateCampaignRequest();
-            final CreateCampaignResult campaign = personalizeClient.createCampaign(createCampaignRequest
-                .withName(m_settings.getCampaignName()).withSolutionVersionArn(m_settings.getSolutionVersion().getARN())
-                .withMinProvisionedTPS(m_settings.getMinProvisionedTPS()));
+        try (final var personalizeConnection = new AmazonPersonalizeConnection(cxnInfo)) {
+            final PersonalizeClient personalizeClient = personalizeConnection.getClient();
+            final CreateCampaignRequest createCampaignRequest = CreateCampaignRequest.builder()
+                    .name(m_settings.getCampaignName())
+                    .solutionVersionArn(m_settings.getSolutionVersion().getARN())
+                    .minProvisionedTPS(m_settings.getMinProvisionedTPS()).build();
+            final CreateCampaignResponse campaign = personalizeClient.createCampaign(createCampaignRequest);
 
             // TODO Test update of existing campaign
             try {
-                final DescribeCampaignRequest describeCampaignRequest =
-                    new DescribeCampaignRequest().withCampaignArn(campaign.getCampaignArn());
+                final var describeCampaignRequest =
+                        DescribeCampaignRequest.builder().campaignArn(campaign.campaignArn()).build();
                 AmazonPersonalizeUtils.waitUntilActive(() -> {
-                    final DescribeCampaignResult campaignDescription =
+                    final DescribeCampaignResponse campaignDescription =
                         personalizeClient.describeCampaign(describeCampaignRequest);
-                    final String status = campaignDescription.getCampaign().getStatus();
+                    final String status = campaignDescription.campaign().status();
                     exec.setMessage("Creating campaign (Status: " + status + ")");
                     if (status.equals(Status.CREATED_FAILED.getStatus())) {
-                        personalizeClient.deleteCampaign(new DeleteCampaignRequest()
-                            .withCampaignArn(campaignDescription.getCampaign().getCampaignArn()));
+                        personalizeClient.deleteCampaign(DeleteCampaignRequest.builder()
+                            .campaignArn(campaignDescription.campaign().campaignArn()).build());
                         throw new IllegalStateException("No campaign has been created. Reason: "
-                            + campaignDescription.getCampaign().getFailureReason());
+                            + campaignDescription.campaign().failureReason());
                     }
                     return status.equals(Status.ACTIVE.getStatus());
                 }, 1000);
@@ -139,7 +140,7 @@ final class AmazonPersonalizeCreateCampaignNodeModel extends NodeModel {
             }
 
             if (m_settings.isOutputCampaignArnAsVar()) {
-                pushFlowVariableString("campaign-ARN", campaign.getCampaignArn());
+                pushFlowVariableString("campaign-ARN", campaign.campaignArn());
             }
         }
         return null;

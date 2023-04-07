@@ -74,7 +74,7 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.port.PortObjectSpec;
 
-import com.amazonaws.services.personalize.AmazonPersonalize;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
 
 /**
  * Node dialog for Amazon Personalize campaign creator node.
@@ -156,13 +156,12 @@ final class AmazonPersonalizeCreateCampaignNodeDialog extends NodeDialogPane {
             throw new NotConfigurableException("No connection information available");
         }
         // Fill combo box with available solution versions
-        try (final AmazonPersonalizeConnection personalizeConnection =
-            new AmazonPersonalizeConnection(connectionInformation)) {
-            final AmazonPersonalize personalize = personalizeConnection.getClient();
+        try (final var personalizeConnection = new AmazonPersonalizeConnection(connectionInformation)) {
+            final PersonalizeClient personalize = personalizeConnection.getClient();
 
             final DefaultComboBoxModel<NameArnPair> comboBoxModel =
                 new DefaultComboBoxModel<NameArnPair>(AmazonPersonalizeUtils.listAllSolutionVersions(personalize)
-                    .stream().map(e -> new NameArnPair(shortARN(e.getSolutionVersionArn()), e.getSolutionVersionArn()))
+                    .stream().map(e -> new NameArnPair(shortARN(e.solutionVersionArn()), e.solutionVersionArn()))
                     .toArray(NameArnPair[]::new));
             if (comboBoxModel.getSize() == 0) {
                 throw new InvalidSettingsException(
@@ -172,7 +171,7 @@ final class AmazonPersonalizeCreateCampaignNodeDialog extends NodeDialogPane {
             m_comboBoxSolutionVersionList.setModel(comboBoxModel);
 
             // Save the campaign names to check later if the specified name already exists
-            m_campaignNames = AmazonPersonalizeUtils.listAllCampaigns(personalize).stream().map(e -> e.getName())
+            m_campaignNames = AmazonPersonalizeUtils.listAllCampaigns(personalize).stream().map(e -> e.name())
                 .toArray(String[]::new);
         } catch (Exception e) {
             throw new NotConfigurableException(e.getMessage());

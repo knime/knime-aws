@@ -74,11 +74,11 @@ import org.knime.core.node.streamable.RowOutput;
 import org.knime.ext.textprocessing.data.Document;
 import org.knime.ext.textprocessing.data.DocumentValue;
 
-import com.amazonaws.services.comprehend.AmazonComprehend;
-import com.amazonaws.services.comprehend.model.BatchDetectKeyPhrasesItemResult;
-import com.amazonaws.services.comprehend.model.BatchDetectKeyPhrasesRequest;
-import com.amazonaws.services.comprehend.model.BatchDetectKeyPhrasesResult;
-import com.amazonaws.services.comprehend.model.KeyPhrase;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectKeyPhrasesItemResult;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectKeyPhrasesRequest;
+import software.amazon.awssdk.services.comprehend.model.BatchDetectKeyPhrasesResponse;
+import software.amazon.awssdk.services.comprehend.model.KeyPhrase;
 
 /**
  * Support streaming the key phases discovery computation.
@@ -105,7 +105,7 @@ class KeyPhrasesOperation extends BaseComprehendOperation {
     }
 
     @Override
-    public void compute(final RowInput in, final RowOutput out, final AmazonComprehend comprehendClient,
+    public void compute(final RowInput in, final RowOutput out, final ComprehendClient comprehendClient,
         final int textColIdx, final ExecutionContext exec, final long rowCount)
         throws CanceledExecutionException, InterruptedException {
 
@@ -159,17 +159,17 @@ class KeyPhrasesOperation extends BaseComprehendOperation {
      * @throws InterruptedException Thrown if execution is canceled
      */
     @SuppressWarnings("null")
-    private final void processChunk(final RowOutput out, final AmazonComprehend comprehendClient,
+    private final void processChunk(final RowOutput out, final ComprehendClient comprehendClient,
         final int numInputColumns, final List<DataRow> rowBatch, final List<String> texts, final Set<Integer> validRows)
         throws InterruptedException {
         final BatchDetectKeyPhrasesRequest detectKeyPhrasesRequest;
-        final BatchDetectKeyPhrasesResult detectKeyPhrasesResult;
+        final BatchDetectKeyPhrasesResponse detectKeyPhrasesResult;
         Iterator<BatchDetectKeyPhrasesItemResult> results = null;
         if (!texts.isEmpty()) {
-            detectKeyPhrasesRequest = new BatchDetectKeyPhrasesRequest().withTextList(texts)
-                .withLanguageCode(ComprehendUtils.LANG_MAP.getOrDefault(m_sourceLanguage, "en"));
+            detectKeyPhrasesRequest = BatchDetectKeyPhrasesRequest.builder().textList(texts)
+                .languageCode(ComprehendUtils.LANG_MAP.getOrDefault(m_sourceLanguage, "en")).build();
             detectKeyPhrasesResult = comprehendClient.batchDetectKeyPhrases(detectKeyPhrasesRequest);
-            results = detectKeyPhrasesResult.getResultList().iterator();
+            results = detectKeyPhrasesResult.resultList().iterator();
         }
         final DataCell[] cells = new DataCell[numInputColumns + 4];
         for (int i = 0; i < rowBatch.size(); i++) {
@@ -179,12 +179,12 @@ class KeyPhrasesOperation extends BaseComprehendOperation {
             }
             if (validRows.contains(i)) {
                 long outputRowIndex = 0;
-                for (final KeyPhrase keyPhrase : results.next().getKeyPhrases()) {
+                for (final KeyPhrase keyPhrase : results.next().keyPhrases()) {
                     // Set new output cell values.
-                    cells[numInputColumns] = new StringCell(keyPhrase.getText());
-                    cells[numInputColumns + 1] = new DoubleCell(keyPhrase.getScore());
-                    cells[numInputColumns + 2] = new IntCell(keyPhrase.getBeginOffset());
-                    cells[numInputColumns + 3] = new IntCell(keyPhrase.getEndOffset());
+                    cells[numInputColumns] = new StringCell(keyPhrase.text());
+                    cells[numInputColumns + 1] = new DoubleCell(keyPhrase.score());
+                    cells[numInputColumns + 2] = new IntCell(keyPhrase.beginOffset());
+                    cells[numInputColumns + 3] = new IntCell(keyPhrase.endOffset());
 
                     // Create a new data row and push it to the output container.
                     out.push(new DefaultRow(new RowKey(row.getKey().getString() + "_" + outputRowIndex++), cells));

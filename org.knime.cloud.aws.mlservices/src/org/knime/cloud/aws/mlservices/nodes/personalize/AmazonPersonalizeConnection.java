@@ -48,14 +48,16 @@
  */
 package org.knime.cloud.aws.mlservices.nodes.personalize;
 
+import java.time.Duration;
+
 import org.knime.base.filehandling.remote.files.Connection;
-import org.knime.cloud.aws.util.AWSCredentialHelper;
+import org.knime.cloud.aws.sdkv2.util.AWSCredentialHelper;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.NodeLogger;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.services.personalize.AmazonPersonalize;
-import com.amazonaws.services.personalize.AmazonPersonalizeClientBuilder;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.personalize.PersonalizeClient;
 
 /**
  * Class used to establish a connection to the Amazon Personalize Runtime service.
@@ -73,8 +75,8 @@ public final class AmazonPersonalizeConnection extends Connection implements Aut
     /** AWS connection information */
     private final CloudConnectionInformation m_connectionInformation;
 
-    /** The Amazon Personalize client */
-    private AmazonPersonalize m_client;
+    /** The PersonalizeClient */
+    private PersonalizeClient m_client;
 
     /**
      * Creates a new instance of {@code PersonalizeConnection}.
@@ -88,7 +90,7 @@ public final class AmazonPersonalizeConnection extends Connection implements Aut
     @Override
     public void open() throws Exception {
         if (!isOpen()) {
-            LOGGER.info("Create a new AmazonPersonalizeClient in Region \"" + m_connectionInformation.getHost()
+            LOGGER.info("Create a new PersonalizeClient in Region \"" + m_connectionInformation.getHost()
                 + "\" with connection timeout " + m_connectionInformation.getTimeout() + " milliseconds");
             try {
                 m_client = getPersonalizeClient(m_connectionInformation);
@@ -100,19 +102,19 @@ public final class AmazonPersonalizeConnection extends Connection implements Aut
     }
 
     /**
-     * Creates and returns a new instance of the {@link AmazonPersonalize} client.
+     * Creates and returns a new instance of the {@link PersonalizeClient} client.
      *
      * @param connInfo The connection information
-     * @return AmazonPersonalize client
+     * @return PersonalizeClient client
      */
-    private static final AmazonPersonalize getPersonalizeClient(final CloudConnectionInformation connInfo) {
-        final var clientConfig = new ClientConfiguration().withConnectionTimeout(connInfo.getTimeout());
+    private static final PersonalizeClient getPersonalizeClient(final CloudConnectionInformation connInfo) {
+        final var clientConfig = ClientOverrideConfiguration.builder()
+                .apiCallTimeout(Duration.ofMillis(connInfo.getTimeout())).build();
 
-        return AmazonPersonalizeClientBuilder.standard() //
-            .withClientConfiguration(clientConfig) //
-            .withRegion(connInfo.getHost()) //
-            .withCredentials(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME)) //
-            .build();
+        return PersonalizeClient.builder()
+                .overrideConfiguration(clientConfig).region(Region.of(connInfo.getHost()))
+                .credentialsProvider(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME))
+                .build();
     }
 
     @Override
@@ -123,18 +125,18 @@ public final class AmazonPersonalizeConnection extends Connection implements Aut
     @Override
     public void close() throws Exception {
         if (isOpen()) {
-            m_client.shutdown();
+            m_client.close();
             m_client = null;
         }
     }
 
     /**
-     * Returns an {@code AmazonPersonalize} client.
+     * Returns an {@code PersonalizeClient} client.
      *
-     * @return Returns an AmazonPersonalize client
+     * @return Returns an PersonalizeClient
      * @throws Exception Thrown if client could not be created
      */
-    public final AmazonPersonalize getClient() throws Exception {
+    public final PersonalizeClient getClient() throws Exception {
         if (!isOpen()) {
             open();
         }

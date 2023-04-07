@@ -48,14 +48,16 @@
  */
 package org.knime.cloud.aws.mlservices.nodes.translate;
 
+import java.time.Duration;
+
 import org.knime.base.filehandling.remote.files.Connection;
-import org.knime.cloud.aws.util.AWSCredentialHelper;
+import org.knime.cloud.aws.sdkv2.util.AWSCredentialHelper;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.NodeLogger;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.services.translate.AmazonTranslate;
-import com.amazonaws.services.translate.AmazonTranslateClientBuilder;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.translate.TranslateClient;
 
 /**
  * Class used to establish the connection to AmazonTranslate.
@@ -72,8 +74,8 @@ public class TranslateConnection extends Connection {
     /** AWS connection information */
     private final CloudConnectionInformation m_connectionInformation;
 
-    /** The AmazonTranslate client */
-    private AmazonTranslate m_client;
+    /** The TranslateClient client */
+    private TranslateClient m_client;
 
     /**
      * Creates a new instance of {@code TranslateConnection}.
@@ -87,7 +89,7 @@ public class TranslateConnection extends Connection {
     @Override
     public void open() throws Exception {
         if (!isOpen()) {
-            LOGGER.info("Create a new AmazonTranslateClient in Region \"" + m_connectionInformation.getHost()
+            LOGGER.info("Create a new TranslateClient in Region \"" + m_connectionInformation.getHost()
                 + "\" with connection timeout " + m_connectionInformation.getTimeout() + " milliseconds");
             try {
                 m_client = getTranslateClient(m_connectionInformation);
@@ -100,20 +102,19 @@ public class TranslateConnection extends Connection {
     }
 
     /**
-     * Creates and returns a new instance of the {@link AmazonTranslate} client.
+     * Creates and returns a new instance of the {@link TranslateClient} client.
      *
      * @param connInfo The connection information
-     * @return AmazonComprehend client
+     * @return TranslateClient client
      */
-    private static final AmazonTranslate getTranslateClient(final CloudConnectionInformation connInfo) {
-        final var clientConfig = new ClientConfiguration() //
-            .withConnectionTimeout(connInfo.getTimeout());
+    private static final TranslateClient getTranslateClient(final CloudConnectionInformation connInfo) {
+        final var clientConfig = ClientOverrideConfiguration.builder()
+                .apiCallTimeout(Duration.ofMillis(connInfo.getTimeout())).build();
 
-        return AmazonTranslateClientBuilder.standard() //
-            .withClientConfiguration(clientConfig) //
-            .withRegion(connInfo.getHost())
-            .withCredentials(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME)) //
-            .build();
+        return TranslateClient.builder()
+                .overrideConfiguration(clientConfig).region(Region.of(connInfo.getHost()))
+                .credentialsProvider(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME))
+                .build();
     }
 
     @Override
@@ -123,16 +124,16 @@ public class TranslateConnection extends Connection {
 
     @Override
     public void close() throws Exception {
-        m_client.shutdown();
+        m_client.close();
     }
 
     /**
-     * Returns an {@code AmazonTranslate} client-
+     * Returns an {@code TranslateClient} client.
      *
-     * @return Returns an AmazonTranslate client
+     * @return Returns an TranslateClient client
      * @throws Exception Thrown if client could not be created
      */
-    final AmazonTranslate getClient() throws Exception {
+    final TranslateClient getClient() throws Exception {
         if (!isOpen()) {
             open();
         }

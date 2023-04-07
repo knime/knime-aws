@@ -16,14 +16,18 @@
 	<classpathentry exported="true" kind="lib" path="libs/aws-query-protocol-2.20.42.jar" sourcepath="libs/aws-query-protocol-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/aws-xml-protocol-2.20.42.jar" sourcepath="libs/aws-xml-protocol-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/commons-codec-1.15.jar" sourcepath="libs/commons-codec-1.15-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/comprehend-2.20.42.jar" sourcepath="libs/comprehend-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/crt-core-2.20.42.jar" sourcepath="libs/crt-core-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/dynamodb-2.20.42.jar" sourcepath="libs/dynamodb-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/endpoints-spi-2.20.42.jar" sourcepath="libs/endpoints-spi-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/eventstream-1.0.1.jar" sourcepath="libs/eventstream-1.0.1-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/http-client-spi-2.20.42.jar" sourcepath="libs/http-client-spi-2.20.42-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/iam-2.20.42.jar" sourcepath="libs/iam-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/json-utils-2.20.42.jar" sourcepath="libs/json-utils-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/kms-2.20.42.jar" sourcepath="libs/kms-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/metrics-spi-2.20.42.jar" sourcepath="libs/metrics-spi-2.20.42-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/personalize-2.20.42.jar" sourcepath="libs/personalize-2.20.42-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/personalizeruntime-2.20.42.jar" sourcepath="libs/personalizeruntime-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/profiles-2.20.42.jar" sourcepath="libs/profiles-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/protocol-core-2.20.42.jar" sourcepath="libs/protocol-core-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/regions-2.20.42.jar" sourcepath="libs/regions-2.20.42-sources.jar"/>
@@ -31,6 +35,7 @@
 	<classpathentry exported="true" kind="lib" path="libs/sdk-core-2.20.42.jar" sourcepath="libs/sdk-core-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/sts-2.20.42.jar" sourcepath="libs/sts-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/third-party-jackson-core-2.20.42.jar" sourcepath="libs/third-party-jackson-core-2.20.42-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/translate-2.20.42.jar" sourcepath="libs/translate-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/utils-2.20.42.jar" sourcepath="libs/utils-2.20.42-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
