@@ -118,7 +118,7 @@ public class AmazonPersonalizeUtils {
         List<DatasetGroupSummary> datasetGroups = listDatasetGroups.datasetGroups();
         String nextToken;
         while ((nextToken = listDatasetGroups.nextToken()) != null) {
-            listDatasetGroups = personalize.listDatasetGroups(ListDatasetGroupsRequest.builder()
+            listDatasetGroups = personalize.listDatasetGroups(listDatasetGroupsRequest.toBuilder()
                 .nextToken(nextToken).build());
             datasetGroups.addAll(listDatasetGroups.datasetGroups());
         }
@@ -135,7 +135,7 @@ public class AmazonPersonalizeUtils {
         List<RecipeSummary> list = result.recipes();
         String nextToken;
         while ((nextToken = result.nextToken()) != null) {
-            result = personalize.listRecipes(ListRecipesRequest.builder()
+            result = personalize.listRecipes(request.toBuilder()
                 .nextToken(nextToken).build());
             list.addAll(result.recipes());
         }
@@ -152,7 +152,7 @@ public class AmazonPersonalizeUtils {
         List<DatasetSchemaSummary> list = result.schemas();
         String nextToken;
         while ((nextToken = result.nextToken()) != null) {
-            result = personalize.listSchemas(ListSchemasRequest.builder()
+            result = personalize.listSchemas(request.toBuilder()
                 .nextToken(nextToken).build());
             list.addAll(result.schemas());
         }
@@ -170,7 +170,7 @@ public class AmazonPersonalizeUtils {
         List<SolutionVersionSummary> list = result.solutionVersions();
         String nextToken;
         while ((nextToken = result.nextToken()) != null) {
-            result = personalize.listSolutionVersions(ListSolutionVersionsRequest.builder()
+            result = personalize.listSolutionVersions(request.toBuilder()
                 .nextToken(nextToken).build());
             list.addAll(result.solutionVersions());
         }
@@ -188,7 +188,7 @@ public class AmazonPersonalizeUtils {
         List<SolutionSummary> list = result.solutions();
         String nextToken;
         while ((nextToken = result.nextToken()) != null) {
-            result = personalize.listSolutions(ListSolutionsRequest.builder()
+            result = personalize.listSolutions(request.toBuilder()
                 .nextToken(nextToken).build());
             list.addAll(result.solutions());
         }
@@ -206,7 +206,7 @@ public class AmazonPersonalizeUtils {
         List<CampaignSummary> list = result.campaigns();
         String nextToken;
         while ((nextToken = result.nextToken()) != null) {
-            result = personalize.listCampaigns(ListCampaignsRequest.builder()
+            result = personalize.listCampaigns(request.toBuilder()
                 .nextToken(nextToken).build());
             list.addAll(result.campaigns());
         }
@@ -228,7 +228,7 @@ public class AmazonPersonalizeUtils {
             List<Role> roles = listRoles.roles();
             String nextToken;
             while ((nextToken = listRoles.marker()) != null) {
-                listRoles = client.listRoles(ListRolesRequest.builder().marker(nextToken).build());
+                listRoles = client.listRoles(listRolesRequest.toBuilder().marker(nextToken).build());
                 roles.addAll(listRoles.roles());
             }
             return roles;
