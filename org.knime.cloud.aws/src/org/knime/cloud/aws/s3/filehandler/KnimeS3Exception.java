@@ -53,10 +53,12 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
+import org.apache.commons.lang3.StringUtils;
+
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 /**
- * Exception to make the {@link AmazonS3Exception}'s more readable
+ * Exception to make the {@link S3Exception}'s more readable
  *
  * @author Ole Ostergaard
  */
@@ -70,13 +72,13 @@ final class KnimeS3Exception extends Exception {
     private final String m_stackTrace;
 
     /**
-     * Constructor taking an {@link AmazonS3Exception} and adding some explanatory error message. The full Stack and
+     * Constructor taking an {@link S3Exception} and adding some explanatory error message. The full Stack and
      * original exception will be logged and will show up in the KNIME log.
      *
      * @param amazonException The original exception that caused the error. You can assume that this exception will be
      *            logged automatically and will show up in the KNIME log.
      */
-    KnimeS3Exception(final AmazonS3Exception amazonException) {
+    KnimeS3Exception(final S3Exception amazonException) {
         super(getExplanation(amazonException) + SEE_LOG_SNIPPET, amazonException);
         m_stackTrace = toStringStackTrace(amazonException);
     }
@@ -115,21 +117,24 @@ final class KnimeS3Exception extends Exception {
         }
     }
 
-    private static String getExplanation(final AmazonS3Exception exception) {
-        String errorCode = exception.getErrorCode();
-        String erroMessage = exception.getMessage();
-        String statusCode = String.valueOf(exception.getStatusCode());
-        StringBuilder builder = new StringBuilder();
-        if (errorCode.startsWith(statusCode)) {
-            builder.append(errorCode);
-        } else {
-            builder.append(statusCode + " " + errorCode);
+    private static String getExplanation(final S3Exception exception) {
+        final var sdkHttpResponse = exception.awsErrorDetails().sdkHttpResponse();
+
+        var errorCode = exception.awsErrorDetails().errorCode();
+        if (StringUtils.isBlank(errorCode)
+                && sdkHttpResponse.statusText().isPresent()) {
+            errorCode = sdkHttpResponse.statusText().get(); //NOSONAR
         }
-        builder.append(". ");
+        final var errorMessage = exception.awsErrorDetails().errorMessage();
+        final var statusCode = String.valueOf(exception.statusCode());
+        final var builder = new StringBuilder(statusCode + " " + errorCode + ". ");
+
         if (errorCode.contains("Forbidden")) {
             builder.append("You might not have access to the given location or it might not exist.");
-        } else if (erroMessage.contains("Access Denied")) {
+        } else if (errorCode.contains("AccessDenied")) {
             builder.append("Your permissions do not allow this operation.");
+        } else {
+            builder.append(StringUtils.trimToEmpty(errorMessage));
         }
         return builder.toString();
     }

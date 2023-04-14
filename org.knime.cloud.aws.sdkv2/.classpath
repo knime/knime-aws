@@ -12,6 +12,7 @@
 	<classpathentry exported="true" kind="lib" path="libs/arns-2.20.42.jar" sourcepath="libs/arns-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/auth-2.20.42.jar" sourcepath="libs/auth-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/aws-core-2.20.42.jar" sourcepath="libs/aws-core-2.20.42-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/aws-crt-0.21.10.jar" sourcepath="libs/aws-crt-0.21.10-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/aws-json-protocol-2.20.42.jar" sourcepath="libs/aws-json-protocol-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/aws-query-protocol-2.20.42.jar" sourcepath="libs/aws-query-protocol-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/aws-xml-protocol-2.20.42.jar" sourcepath="libs/aws-xml-protocol-2.20.42-sources.jar"/>
@@ -32,6 +33,7 @@
 	<classpathentry exported="true" kind="lib" path="libs/protocol-core-2.20.42.jar" sourcepath="libs/protocol-core-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/regions-2.20.42.jar" sourcepath="libs/regions-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/s3-2.20.42.jar" sourcepath="libs/s3-2.20.42-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/s3-transfer-manager-2.20.42.jar" sourcepath="libs/s3-transfer-manager-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/sdk-core-2.20.42.jar" sourcepath="libs/sdk-core-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/sts-2.20.42.jar" sourcepath="libs/sts-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/third-party-jackson-core-2.20.42.jar" sourcepath="libs/third-party-jackson-core-2.20.42-sources.jar"/>

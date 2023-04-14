@@ -63,8 +63,8 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.core.node.workflow.CredentialsProvider;
 import org.knime.core.node.workflow.ICredentials;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import software.amazon.awssdk.regions.GeneratedServiceMetadataProvider;
+import software.amazon.awssdk.regions.Region;
 
 /**
  * Model representing AWS connection information
@@ -153,12 +153,15 @@ public class AWSConnectionInformationSettings extends ConnectionInformationCloud
             throw new InvalidSettingsException("Please enter a valid region");
         }
 
-        if (!StringUtils.isBlank(getPrefix())
-            && !Region.getRegion(Regions.fromName(getRegion())).isServiceSupported(getPrefix())) {
-            throw new InvalidSettingsException(
-                "The region \"" + getRegion() + "\" is not supported by the service \"" + getPrefix() + "\"");
-        }
+        if (!StringUtils.isBlank(getPrefix())) {
+            final var serviceMetadataProvider = new GeneratedServiceMetadataProvider();
+            final var serviceMetadata = serviceMetadataProvider.serviceMetadata(getPrefix());
 
+            if (!serviceMetadata.regions().contains(Region.of(getRegion()))) {
+                throw new InvalidSettingsException(
+                    "The region \"" + getRegion() + "\" is not supported by the service \"" + getPrefix() + "\"");
+            }
+        }
     }
 
     /**

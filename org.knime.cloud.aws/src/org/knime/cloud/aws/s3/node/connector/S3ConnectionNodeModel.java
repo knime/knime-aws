@@ -75,7 +75,7 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.util.Pair;
 
-import com.amazonaws.services.s3.AmazonS3;
+import software.amazon.awssdk.services.s3.S3Client;
 
 /**
  *
@@ -86,7 +86,7 @@ public class S3ConnectionNodeModel extends NodeModel {
 	private final AWSConnectionInformationSettings m_model = createAWSConnectionModel();
 
 	static AWSConnectionInformationSettings createAWSConnectionModel() {
-		return new AWSConnectionInformationSettings(AmazonS3.ENDPOINT_PREFIX);
+		return new AWSConnectionInformationSettings(S3Client.SERVICE_METADATA_ID);
 	}
 
 	static HashMap<AuthenticationType, Pair<String, String>> getNameMap() {

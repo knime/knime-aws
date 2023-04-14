@@ -4,6 +4,7 @@ apache-client-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 Licens
 arns-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 auth-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 aws-core-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
+aws-crt-0.21.10.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 aws-json-protocol-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 aws-query-protocol-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 aws-xml-protocol-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
@@ -24,6 +25,7 @@ profiles-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;htt
 protocol-core-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 regions-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 s3-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
+s3-transfer-manager-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 sdk-core-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 sts-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 third-party-jackson-core-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.

@@ -10,7 +10,7 @@ import org.knime.base.filehandling.remote.files.RemoteFileHandler;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.util.CheckUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
+import software.amazon.awssdk.services.s3.S3Client;
 
 /**
  * S3 remote file handler
@@ -24,7 +24,7 @@ public class S3RemoteFileHandler implements RemoteFileHandler<S3Connection> {
 	public static final String DEFAULT_REGION = "s3.amazonaws.com";
 
 	/** The {@link Protocol} of this {@link RemoteFileHandler}. */
-	public static final Protocol PROTOCOL = new Protocol(AmazonS3.ENDPOINT_PREFIX, -1, false, false, false, true, true,
+	public static final Protocol PROTOCOL = new Protocol(S3Client.SERVICE_METADATA_ID, -1, false, false, false, true, true,
 			true, true, false);
 
 	@Override

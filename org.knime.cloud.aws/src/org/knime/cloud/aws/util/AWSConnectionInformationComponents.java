@@ -54,7 +54,6 @@ import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.stream.Stream;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -73,8 +72,9 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.CredentialsProvider;
 import org.knime.core.util.Pair;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import software.amazon.awssdk.regions.GeneratedServiceMetadataProvider;
+import software.amazon.awssdk.regions.Region;
+
 
 /**
  * Dialog component that allow users to enter information needed to connect to AWS
@@ -138,20 +138,17 @@ public final class AWSConnectionInformationComponents
 
     private ArrayList<String> loadRegions() {
         final AWSConnectionInformationSettings model = getSettings();
-        final ArrayList<String> regionNames = new ArrayList<>();
+        final ArrayList<String> regionIds = new ArrayList<>();
         final String prefix = model.getPrefix();
         if (prefix != null && !prefix.isEmpty()) {
-            for (final Regions regions : Regions.values()) {
-                final Region region = Region.getRegion(regions);
-                if (region.isServiceSupported(model.getPrefix())) {
-                    final String reg = region.getName();
-                    regionNames.add(reg);
-                }
-            }
+            final var serviceMetadataProvider = new GeneratedServiceMetadataProvider();
+            final var serviceMetadata = serviceMetadataProvider.serviceMetadata(prefix);
+
+            serviceMetadata.regions().forEach(region -> regionIds.add(region.id()));
         } else {
-            Stream.of(Regions.values()).forEach(reg -> regionNames.add(reg.getName()));
+            Region.regions().forEach(region -> regionIds.add(region.id()));
         }
-        return regionNames;
+        return regionIds;
     }
 
     /**

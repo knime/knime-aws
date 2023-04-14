@@ -7,7 +7,7 @@ import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.defaultnodesettings.DefaultNodeSettingsPane;
 import org.knime.core.node.port.PortObjectSpec;
 
-import com.amazonaws.services.s3.AmazonS3;
+import software.amazon.awssdk.services.s3.S3Client;
 
 /**
  * <code>NodeDialog</code> for the "S3ConnectionToUrl" Node.
@@ -29,13 +29,13 @@ public class S3FilePickerNodeDialog extends AbstractFilePickerNodeDialog {
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void checkConnectionInformation(PortObjectSpec spec) throws NotConfigurableException {
+	protected void checkConnectionInformation(final PortObjectSpec spec) throws NotConfigurableException {
 		if (spec != null) {
 			final ConnectionInformationPortObjectSpec object = (ConnectionInformationPortObjectSpec) spec;
 			final ConnectionInformation connectionInformation = object.getConnectionInformation();
 			// Check if the port object has connection information
 			if (connectionInformation == null
-					|| !connectionInformation.getProtocol().equals(AmazonS3.ENDPOINT_PREFIX)) {
+					|| !connectionInformation.getProtocol().equals(S3Client.SERVICE_METADATA_ID)) {
 				throw new NotConfigurableException("No S3 connection information is available");
 			}
 			m_connectionInformation = connectionInformation;

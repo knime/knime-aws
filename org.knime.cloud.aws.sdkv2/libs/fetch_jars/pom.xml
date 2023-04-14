@@ -104,6 +104,15 @@
 		    <groupId>software.amazon.awssdk</groupId>
 		    <artifactId>translate</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3-transfer-manager</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk.crt</groupId>
+			<artifactId>aws-crt</artifactId>
+			<version>0.21.10</version>
+		</dependency>
     </dependencies>
 
     <build>

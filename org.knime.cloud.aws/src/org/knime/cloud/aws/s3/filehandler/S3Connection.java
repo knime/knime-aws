@@ -1,31 +1,24 @@
 package org.knime.cloud.aws.s3.filehandler;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import org.knime.base.filehandling.remote.files.Connection;
+import org.knime.cloud.aws.sdkv2.util.AWSCredentialHelper;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeLogger;
-import org.knime.core.util.KnimeEncryption;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
-import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
-import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Bucket;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
 
 /**
  * S3 Connection
@@ -38,14 +31,17 @@ public class S3Connection extends Connection {
 
 	private static final NodeLogger LOGGER = NodeLogger.getLogger(S3Connection.class);
 
+	private static final String ROLE_SESSION_NAME = "KNIME_S3_Connection";
+
 	private final CloudConnectionInformation m_connectionInformation;
 
-	private AmazonS3 m_client;
+	private S3Client m_client;
 
-	private TransferManager m_transferManager;
+	private S3TransferManager m_transferManager;
+
+	private S3Presigner m_presigner;
 
 	private List<String> m_bucketsCache;
-
 
 	private boolean m_restrictedPermissions = false;
 
@@ -59,27 +55,23 @@ public class S3Connection extends Connection {
 		m_bucketsCache = new ArrayList<>();
 	}
 
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	public void open() throws Exception {
 		if (!isOpen()) {
 			LOGGER.info("Create a new AmazonS3Client in Region \"" + m_connectionInformation.getHost()
 					+ "\" with connection timeout " + m_connectionInformation.getTimeout() + " milliseconds");
 
 			try {
-		        if (m_connectionInformation.switchRole()) {
-		            m_client = getRoleAssumedS3Client(m_connectionInformation);
-		        } else {
-                    m_client = getS3Client(m_connectionInformation);
-		        }
-
+			    m_client = getS3Client(m_connectionInformation);
 				resetCache();
 				try {
 				    // Try to fetch buckets. Will not work if ListAllMyBuckets is set to false
 				    getBuckets();
-				} catch (final AmazonS3Exception e){
-				    if (Objects.equals(e.getErrorCode(), "InvalidAccessKeyId")) {
+				} catch (final S3Exception e){
+				    if (Objects.equals(e.awsErrorDetails().errorCode(), "InvalidAccessKeyId")) {
 				        throw new InvalidSettingsException("Check your Access Key ID / Secret Key.");
-				    } else if (Objects.equals(e.getErrorCode(), "AccessDenied")) {
+				    } else if (Objects.equals(e.awsErrorDetails().errorCode(), "AccessDenied")) {
 				        // do nothing, see AP-8279
 				        // This means that we do not have access to root level,
 				        m_restrictedPermissions = true;
@@ -87,95 +79,65 @@ public class S3Connection extends Connection {
 				        throw e;
 				    }
 				}
-				m_transferManager = TransferManagerBuilder.standard().withS3Client(m_client).build();
-			} catch (final AmazonS3Exception ex) {
+				m_presigner = getPresigner(m_connectionInformation);
+				m_transferManager = S3TransferManager.builder()
+				        .s3Client(getAsyncS3Client(m_connectionInformation)).build();
+			} catch (final S3Exception ex) {
 				close();
 				throw ex;
 			}
 		}
 	}
 
-	private static AmazonS3 getS3Client(final CloudConnectionInformation connectionInformation) throws Exception {
-	    final ClientConfiguration clientConfig = new ClientConfiguration().withConnectionTimeout(
-            connectionInformation.getTimeout());
+	private static S3Client getS3Client(final CloudConnectionInformation connInfo) {
+	    final var clientConfig = ClientOverrideConfiguration.builder()
+                .apiCallTimeout(Duration.ofMillis(connInfo.getTimeout())).build();
 
-	    AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
-	            .withClientConfiguration(clientConfig)
-	            .withRegion(connectionInformation.getHost());
-
-	    if (!connectionInformation.useKeyChain()) {
-	        AWSCredentials credentials = getCredentials(connectionInformation);
-	        builder.withCredentials(new AWSStaticCredentialsProvider(credentials));
-	    }
-
-
-	    return builder.build();
+        return S3Client.builder()
+                .overrideConfiguration(clientConfig).region(Region.of(connInfo.getHost()))
+                .credentialsProvider(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME))
+                .build();
 	}
 
-	private static AmazonS3 getRoleAssumedS3Client(final CloudConnectionInformation connectionInformation) throws Exception {
-	    AWSSecurityTokenServiceClientBuilder builder = AWSSecurityTokenServiceClientBuilder.standard().
-	            withRegion(connectionInformation.getHost());
-	    if (!connectionInformation.useKeyChain()) {
-	        AWSCredentials credentials = getCredentials(connectionInformation);
-            builder.withCredentials(new AWSStaticCredentialsProvider(credentials));
-	    }
+	private static S3AsyncClient getAsyncS3Client(final CloudConnectionInformation connInfo) {
+        return S3AsyncClient.crtBuilder()
+                .region(Region.of(connInfo.getHost()))
+                .credentialsProvider(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME))
+                .build();
+    }
 
-	    AWSSecurityTokenService stsClient = builder.build();
-
-        final AssumeRoleRequest assumeRoleRequest = new AssumeRoleRequest()
-                .withRoleArn(buildARN(connectionInformation))
-                .withDurationSeconds(3600)
-                .withRoleSessionName("KNIME_S3_Connection");
-
-        final AssumeRoleResult assumeResult = stsClient.assumeRole(assumeRoleRequest);
-
-        final BasicSessionCredentials tempCredentials =
-                new BasicSessionCredentials(
-                        assumeResult.getCredentials().getAccessKeyId(),
-                        assumeResult.getCredentials().getSecretAccessKey(),
-                        assumeResult.getCredentials().getSessionToken());
-
-         return AmazonS3ClientBuilder.standard().withCredentials(
-            new AWSStaticCredentialsProvider(tempCredentials))
-                .withRegion(connectionInformation.getHost()).build();
-	}
-
-	private static String buildARN(final CloudConnectionInformation connectionInformation) {
-	    return "arn:aws:iam::" + connectionInformation.getSwitchRoleAccount() + ":role/" + connectionInformation.getSwitchRoleName();
-	}
-
-	private static AWSCredentials getCredentials(final CloudConnectionInformation connectionInformation) throws Exception {
-	    if (connectionInformation.isUseAnonymous()) {
-            return new AnonymousAWSCredentials();
-        }
-	    final String accessKeyId = connectionInformation.getUser();
-        final String secretAccessKey = KnimeEncryption.decrypt(connectionInformation.getPassword());
-        return new BasicAWSCredentials(accessKeyId, secretAccessKey);
-
-	}
+	private static S3Presigner getPresigner(final CloudConnectionInformation connInfo) {
+	    return S3Presigner.builder()
+                .region(Region.of(connInfo.getHost()))
+                .credentialsProvider(AWSCredentialHelper.getCredentialProvider(connInfo, ROLE_SESSION_NAME))
+                .build();
+    }
 
 	@Override
 	public boolean isOpen() {
-		return m_client != null && m_transferManager != null;
+		return m_client != null && m_transferManager != null && m_presigner != null;
 	}
 
 	@Override
 	public void close() throws Exception {
 		resetCache();
 		if(m_transferManager != null) {
-		    m_transferManager.shutdownNow();
+		    m_transferManager.close();
 		}
+		if (m_presigner != null) {
+            m_presigner.close();
+        }
 		if(m_client != null) {
-		    m_client.shutdown();
+		    m_client.close();
 		}
 	}
 
 	/**
-	 * Get this connection's AmazonS3Client
+	 * Get this connection's S3Client
 	 *
 	 * @return the connection's client
 	 */
-	public AmazonS3 getClient() {
+	public S3Client getClient() {
 		return m_client;
 	}
 
@@ -183,20 +145,30 @@ public class S3Connection extends Connection {
 	 * Get this connection's TransferManager
 	 * @return the connection's transfer manager
 	 */
-	public TransferManager getTransferManager() {
+	public S3TransferManager getTransferManager() {
 		return m_transferManager;
+	}
+
+	/**
+	 * Get this connection's S3Presigner
+	 *
+	 * @return the connection's presigner
+	 */
+	public S3Presigner getPresigner() {
+	    return m_presigner;
 	}
 
 	/**
 	 * Get the List of this connection's cached buckets
 	 * @return the list of this connection's cached buckets
-	 * @throws AmazonS3Exception
+	 * @throws S3Exception
 	 */
-	public List<String> getBuckets() throws AmazonS3Exception {
+	public List<String> getBuckets() throws S3Exception {
 		if (m_bucketsCache == null) {
-			m_bucketsCache = new ArrayList<String>();
-			for (final Bucket bucket : m_client.listBuckets()) {
-				m_bucketsCache.add(bucket.getName());
+			m_bucketsCache = new ArrayList<>();
+			final var response = m_client.listBuckets();
+			for (final Bucket bucket : response.buckets()) {
+				m_bucketsCache.add(bucket.name());
 			}
 		}
 		return m_bucketsCache;

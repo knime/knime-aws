@@ -1,6 +1,8 @@
 package org.knime.cloud.aws.s3.node.filepicker;
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 
 import org.knime.base.filehandling.NodeUtils;
@@ -12,8 +14,9 @@ import org.knime.cloud.aws.s3.filehandler.S3RemoteFile;
 import org.knime.cloud.core.node.filepicker.AbstractFilePickerNodeModel;
 import org.knime.core.node.NodeLogger;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 /**
  * This is the model implementation of S3ConnectionToUrl.
@@ -41,14 +44,15 @@ public class S3FilePickerNodeModel extends AbstractFilePickerNodeModel{
 	 * {@inheritDoc}
 	 * @throws Exception
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected String getSignedURL(final ConnectionMonitor<? extends Connection> monitor, final ConnectionInformation connectionInformation) throws Exception {
 		final URI uri = new URI(connectionInformation.toURI().toString() + NodeUtils.encodePath(getFileSelection()));
 		final S3RemoteFile remoteFile = (S3RemoteFile) RemoteFileFactory.createRemoteFile(uri,
 				connectionInformation, monitor);
 
 		remoteFile.open();
-		final AmazonS3 s3Client = remoteFile.getConnection().getClient();
+		final var s3Presigner = remoteFile.getConnection().getPresigner();
 		final String bucketName = remoteFile.getContainerName();
 		final String key = remoteFile.getBlobName();
 
@@ -56,9 +60,15 @@ public class S3FilePickerNodeModel extends AbstractFilePickerNodeModel{
 
 		LOGGER.debug("Generate Presigned URL with expiration time: " + expirationTime);
 
-		final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, key);
-		request.setExpiration(expirationTime);
-		return s3Client.generatePresignedUrl(request).toURI().toString();
+		final var getObjectRequest = GetObjectRequest.builder()
+		        .bucket(bucketName).key(key).build();
+
+        final var presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.between(Instant.now(), expirationTime.toInstant()))
+                .getObjectRequest(getObjectRequest).build();
+
+        final var presignedRequest = s3Presigner.presignGetObject(presignRequest);
+		return presignedRequest.url().toURI().toString();
 	}
 
 	/**
@@ -66,7 +76,7 @@ public class S3FilePickerNodeModel extends AbstractFilePickerNodeModel{
 	 */
 	@Override
 	protected String getEndpointPrefix() {
-		return AmazonS3.ENDPOINT_PREFIX;
+		return S3Client.SERVICE_METADATA_ID;
 	}
 
 }

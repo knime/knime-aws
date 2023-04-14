@@ -49,39 +49,45 @@
 package org.knime.cloud.aws.s3.filehandler;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.knime.base.filehandling.remote.files.ConnectionMonitor;
 import org.knime.base.filehandling.remote.files.RemoteFile;
 import org.knime.cloud.core.file.CloudRemoteFile;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.util.CheckUtils;
+import org.knime.core.util.FileUtil;
 
-import com.amazonaws.event.ProgressEvent;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.transfer.PersistableTransfer;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.services.s3.transfer.internal.S3ProgressListener;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Bucket;
+import software.amazon.awssdk.services.s3.model.CommonPrefix;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
+import software.amazon.awssdk.transfer.s3.model.UploadFileRequest;
+import software.amazon.awssdk.transfer.s3.progress.TransferListener;
 
 /**
  * Implementation of {@link CloudRemoteFile} for Amazon S3
@@ -100,7 +106,7 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	 */
 	protected S3RemoteFile(final URI uri, final CloudConnectionInformation connectionInformation,
 			final ConnectionMonitor<S3Connection> connectionMonitor) {
-		this(uri, connectionInformation, connectionMonitor, null);
+		this(uri, connectionInformation, connectionMonitor, null, null);
 	}
 
 	/**
@@ -109,17 +115,18 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	 * @param uri The RemoteFile's URI
 	 * @param connectionInformation The RemoteFile's connection information
 	 * @param connectionMonitor The RemoteFile's connection monitor
-	 * @param summary The RemoteFile's S3ObjectSummary
+	 * @param bucketName The RemoteFile's bucket name
+	 * @param summary The RemoteFile's S3Object
 	 */
 	protected S3RemoteFile(final URI uri, final CloudConnectionInformation connectionInformation,
-			final ConnectionMonitor<S3Connection> connectionMonitor, final S3ObjectSummary summary) {
+			final ConnectionMonitor<S3Connection> connectionMonitor, final String bucketName, final S3Object summary) {
 		super(uri, connectionInformation, connectionMonitor);
 		CheckUtils.checkArgumentNotNull(connectionInformation, "Connection information must not be null");
+		m_containerName = bucketName;
 		if (summary != null) {
-			m_containerName = summary.getBucketName();
-			m_blobName = summary.getKey();
-			m_lastModified = summary.getLastModified().getTime();
-			m_size = summary.getSize();
+			m_blobName = summary.key();
+			m_lastModified = summary.lastModified().getEpochSecond();
+			m_size = summary.size();
 		}
 	}
 
@@ -131,11 +138,11 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 		return new S3Connection((CloudConnectionInformation)getConnectionInformation());
 	}
 
-	private AmazonS3 getClient() throws Exception {
+	private S3Client getClient() throws Exception {
 		return getOpenedConnection().getClient();
 	}
 
-	private TransferManager getTransferManager() throws Exception {
+	private S3TransferManager getTransferManager() throws Exception {
 		return getOpenedConnection().getTransferManager();
 	}
 
@@ -153,7 +160,7 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
                 exists = openedConnection.isOwnBucket(containerName);
             }
         	return exists;
-		} catch (AmazonS3Exception amazonException) {
+		} catch (S3Exception amazonException) {
 		    throw new KnimeS3Exception(amazonException);
 		}
 	}
@@ -161,11 +168,19 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected boolean doestBlobExist(final String containerName, final String blobName) throws Exception {
 	    try {
-	        return getClient().doesObjectExist(containerName, blobName);
-	    } catch (AmazonS3Exception amazonException) {
+	        final var headRequest = HeadObjectRequest.builder().bucket(containerName)
+	                .key(blobName).build();
+	        try {
+	            getClient().headObject(headRequest);
+	            return true;
+	        } catch (NoSuchKeyException noKeyException) {//NOSONAR
+	            return false;
+	        }
+	    } catch (S3Exception amazonException) {
 	        throw new KnimeS3Exception(amazonException);
 	    }
 	}
@@ -173,23 +188,25 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected S3RemoteFile[] listRootFiles() throws Exception {
 	    try {
-	        final List<Bucket> buckets = getClient().listBuckets();
+	        final var response = getClient().listBuckets();
+	        final List<Bucket> buckets = response.buckets();
 	        if (buckets == null || buckets.isEmpty()) {
 	            return new S3RemoteFile[0];
 	        }
 	        final S3RemoteFile[] files = new S3RemoteFile[buckets.size()];
 	        for (int i = 0; i < files.length; i++) {
 	            final URI uri = new URI(getURI().getScheme(), getURI().getUserInfo(), getURI().getHost(),
-	                    getURI().getPort(), createContainerPath(buckets.get(i).getName()), getURI().getQuery(),
+	                    getURI().getPort(), createContainerPath(buckets.get(i).name()), getURI().getQuery(),
 	                    getURI().getFragment());
 	            files[i] = new S3RemoteFile(uri, (CloudConnectionInformation)getConnectionInformation(),
 	                    getConnectionMonitor());
 	        }
 	        return files;
-	    } catch (AmazonS3Exception amazonException) {
+	    } catch (S3Exception amazonException) {
 	        throw new KnimeS3Exception(amazonException);
 	    }
 	}
@@ -197,42 +214,42 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("resource")
     @Override
     protected S3RemoteFile[] listDirectoryFiles() throws Exception {
         S3RemoteFile[] files;
         try {
             final String bucketName = getContainerName();
             final String prefix = getBlobName();
-            final ListObjectsV2Request request = new ListObjectsV2Request().withBucketName(bucketName)
-                    .withPrefix(prefix).withDelimiter(DELIMITER);
-            ListObjectsV2Result result;
+            var request = ListObjectsV2Request.builder()
+                    .bucket(bucketName).prefix(prefix).delimiter(DELIMITER).build();
+            ListObjectsV2Response result;
             final List<S3RemoteFile> fileList = new ArrayList<>();
             do {
                 result = getClient().listObjectsV2(request);
-                for (final S3ObjectSummary summary : result.getObjectSummaries()) {
-                    if (!summary.getKey().equals(prefix)) {
+                for (final S3Object summary : result.contents()) {
+                    if (!summary.key().equals(prefix)) {
                         final URI uri = new URI(getURI().getScheme(), getURI().getUserInfo(), getURI().getHost(),
-                                getURI().getPort(), createContainerPath(bucketName) + summary.getKey(),
+                                getURI().getPort(), createContainerPath(bucketName) + summary.key(),
                                 getURI().getQuery(), getURI().getFragment());
                         fileList.add(new S3RemoteFile(uri, (CloudConnectionInformation)getConnectionInformation(),
-                                getConnectionMonitor(), summary));
+                                getConnectionMonitor(), bucketName, summary));
                     }
                 }
 
-                for (final String commPrefix : result.getCommonPrefixes()) {
+                for (final CommonPrefix commPrefix : result.commonPrefixes()) {
                     final URI uri = new URI(getURI().getScheme(), getURI().getUserInfo(), getURI().getHost(),
-                            getURI().getPort(), createContainerPath(bucketName) + commPrefix, getURI().getQuery(),
-                            getURI().getFragment());
+                            getURI().getPort(), createContainerPath(bucketName) + commPrefix.prefix(),
+                            getURI().getQuery(), getURI().getFragment());
                     fileList.add(new S3RemoteFile(uri, (CloudConnectionInformation)getConnectionInformation(),
                             getConnectionMonitor()));
                 }
-
-                request.setContinuationToken(result.getNextContinuationToken());
+                request = request.toBuilder().continuationToken(result.nextContinuationToken()).build();
             } while (result.isTruncated());
 
             files = fileList.toArray(new S3RemoteFile[fileList.size()]);
 
-        } catch (AmazonS3Exception e){
+        } catch (S3Exception e) {
             // Listing does not work, when bucket is in wrong region, return empty array of files -- see AP-6662
             files = new S3RemoteFile[0];
         }
@@ -242,11 +259,14 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected long getBlobSize() throws Exception {
 	    try {
-	        return getClient().getObjectMetadata(getContainerName(), getBlobName()).getContentLength();
-	    } catch (AmazonS3Exception amazonException) {
+	        final var headRequest = HeadObjectRequest.builder().bucket(getContainerName())
+	                .key(getBlobName()).build();
+            return getClient().headObject(headRequest).contentLength();
+	    } catch (S3Exception amazonException) {
 	        throw new KnimeS3Exception(amazonException);
 	    }
 	}
@@ -254,11 +274,14 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected long getLastModified() throws Exception {
 	    try {
-	        return getClient().getObjectMetadata(getContainerName(), getBlobName()).getLastModified().getTime();
-	    } catch (AmazonS3Exception amazonException) {
+	        final var headRequest = HeadObjectRequest.builder().bucket(getContainerName())
+                    .key(getBlobName()).build();
+	        return getClient().headObject(headRequest).lastModified().toEpochMilli();
+	    } catch (S3Exception amazonException) {
 	        throw new KnimeS3Exception(amazonException);
 	    }
 	}
@@ -266,15 +289,16 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected boolean deleteContainer() throws Exception {
 		try {
     	    for (final CloudRemoteFile<S3Connection> file : listFiles()) {
     			((S3RemoteFile) file).delete();
     		}
-    		getClient().deleteBucket(getContainerName());
+    		getClient().deleteBucket(DeleteBucketRequest.builder().bucket(getContainerName()).build());
     		return true;
-		} catch (AmazonS3Exception amazonException) {
+		} catch (S3Exception amazonException) {
 		    throw new KnimeS3Exception(amazonException);
 		}
 	}
@@ -289,7 +313,7 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
     			((S3RemoteFile) file).delete();
     		}
     		return deleteBlob();
-		} catch (AmazonS3Exception amazonException) {
+		} catch (S3Exception amazonException) {
 		    throw new KnimeS3Exception(amazonException);
 		}
 	}
@@ -297,12 +321,15 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected boolean deleteBlob() throws Exception {
 		try {
-    	    getClient().deleteObject(getContainerName(), getBlobName());
+		    final var deleteRequest = DeleteObjectRequest.builder().bucket(getContainerName())
+		            .key(getBlobName()).build();
+    	    getClient().deleteObject(deleteRequest);
     		return true;
-		} catch (AmazonS3Exception amazonException) {
+		} catch (S3Exception amazonException) {
 		    throw new KnimeS3Exception(amazonException);
 		}
 	}
@@ -310,12 +337,14 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected boolean createContainer() throws Exception {
 		try {
-		    getClient().createBucket(getContainerName());
+		    final var createRequest = CreateBucketRequest.builder().bucket(getContainerName()).build();
+		    getClient().createBucket(createRequest);
 		    return true;
-		} catch (AmazonS3Exception amazonException) {
+		} catch (S3Exception amazonException) {
 		    throw new KnimeS3Exception(amazonException);
 		}
 	}
@@ -323,26 +352,22 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
+	@SuppressWarnings("resource")
+    @Override
 	protected boolean createDirectory(final String dirName) throws Exception {
 	    try {
-	        final ObjectMetadata metadata = new ObjectMetadata();
-	        // Add SSEncryption --> See AP-8823
-	        if (getConnection().useSSEncryption()) {
-	            metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
-	        }
-	        metadata.setContentLength(0);
-
-	        // Create empty content
-	        final InputStream emptyContent = new ByteArrayInputStream(new byte[0]);
 	        // Create a PutObjectRequest passing the folder name
-	        // suffixed by the DELIMITER
-	        final PutObjectRequest putObjectRequest = new PutObjectRequest(getContainerName(), dirName, emptyContent,
-	            metadata);
-	        // Send request to S3 to create folder
-	        getClient().putObject(putObjectRequest);
+            // suffixed by the DELIMITER
+	        final var reqBuilder = PutObjectRequest.builder()
+                    .bucket(getContainerName())
+                    .key(dirName);
+            if (getConnection().useSSEncryption()) {
+                // Add SSEncryption --> See AP-8823
+                reqBuilder.serverSideEncryption(ServerSideEncryption.AES256);
+            }
+	        getClient().putObject(reqBuilder.build(), RequestBody.empty());
 	        return true;
-	    } catch (AmazonS3Exception amazonException) {
+	    } catch (S3Exception amazonException) {
 	        throw new KnimeS3Exception(amazonException);
 	    }
 	}
@@ -354,16 +379,11 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
     @Override
 	public InputStream openInputStream() throws Exception {
 	    try {
-    		final String bucketName = getContainerName();
-    		final String key = getBlobName();
-
-    		final GetObjectRequest getRequest = new GetObjectRequest(bucketName, key);
-    		// create input stream from the S3Object specified in the getRequest
-    		final S3Object object = getClient().getObject(getRequest);
-    		final S3ObjectInputStream s3inputStream = object.getObjectContent();
-
-    		return new BufferedInputStream(s3inputStream);
-	    } catch (AmazonS3Exception amazonException) {
+    		final var request = GetObjectRequest.builder().bucket(getContainerName())
+    		        .key(getBlobName()).build();
+    		final var response = getClient().getObject(request);
+    		return new BufferedInputStream(response);
+	    } catch (S3Exception amazonException) {
 	        throw new KnimeS3Exception(amazonException);
 	    }
 	}
@@ -383,57 +403,62 @@ public class S3RemoteFile extends CloudRemoteFile<S3Connection> {
      *
      * This method will overwrite the old file if it exists.
      *
-     * @param file Source remote file
+     * @param remoteFile Source remote file
      * @param exec Execution context for <code>checkCanceled()</code> and
      *            <code>setProgress()</code>
      * @throws Exception If the operation could not be executed
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "resource"})
     @Override
-    public void write(final RemoteFile file, final ExecutionContext exec) throws Exception {
-        // Default implementation using just remote file methods
-        try (final InputStream in = file.openInputStream()){
-            final String uri = getURI().toString();
-            final ObjectMetadata metadata = new ObjectMetadata();
+    public void write(final RemoteFile remoteFile, final ExecutionContext exec) throws Exception {
 
-            // Add SSEncryption --> See AP-8823
-            if (getConnection().useSSEncryption()) {
-                metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        final var fileExtension = FilenameUtils.getExtension(remoteFile.getFullName());
+        final var localFile = FileUtil.createTempFile(UUID.randomUUID().toString(),
+            (StringUtils.isBlank(fileExtension) ? "" : ("." + fileExtension)), true);
+
+        try (final var stream = new FileOutputStream(localFile)) {
+            FileUtil.copy(remoteFile.openInputStream(), stream);
+        } catch (final Exception ex) {
+            localFile.delete(); // NOSONAR
+            throw new RuntimeException(
+                "Error while copying the remote input file to the local machine: " + ex.getMessage(), ex);
+        }
+
+        final var putBuilder = PutObjectRequest.builder()
+                .bucket(getContainerName())
+                .key(getBlobName());
+        if (getConnection().useSSEncryption()) {
+            putBuilder.serverSideEncryption(ServerSideEncryption.AES256);
+        }
+        long fileSize = remoteFile.getSize();
+        final var uri = getURI().toString();
+        final var transferListener =  new TransferListener() {
+
+            long m_totalTransferred = 0;
+
+            @Override
+            public void bytesTransferred(final Context.BytesTransferred context) {
+                m_totalTransferred += context.progressSnapshot().transferredBytes();
+                exec.setProgress(((double) m_totalTransferred) / fileSize,//
+                    () -> "Written: " + FileUtils.byteCountToDisplaySize(m_totalTransferred) + " to file " + uri);
             }
-
-            long fileSize = file.getSize();
-            metadata.setContentLength(fileSize);
-            final PutObjectRequest putRequest = new PutObjectRequest(getContainerName(), getBlobName(), in, metadata);
-            Upload upload = getTransferManager().upload(putRequest);
-
-            S3ProgressListener progressListener = new S3ProgressListener() {
-
-                long totalTransferred = 0;
-
-                @Override
-                public void progressChanged(final ProgressEvent progressEvent) {
-                    totalTransferred+=progressEvent.getBytesTransferred();
-                    double percent = totalTransferred/(fileSize/100);
-                    exec.setProgress(percent / 100, () -> "Written: " + FileUtils.byteCountToDisplaySize(totalTransferred) + " to file " + uri);
-                }
-
-                @Override
-                public void onPersistableTransfer(final PersistableTransfer persistableTransfer) {
-                    // Not used since we are not going to pause/unpause upload
-                }
-            };
-
-            upload.addProgressListener(progressListener);
-            upload.waitForCompletion();
+        };
+        final var uploadFileRequest = UploadFileRequest.builder()
+                .putObjectRequest(putBuilder.build())
+                .source(localFile)
+                .addTransferListener(transferListener)
+                .build();
+        try {
+            final var fileUpload = getTransferManager().uploadFile(uploadFileRequest);
+            fileUpload.completionFuture().join();
         } catch (InterruptedException e) {
-            // removes uploaded parts of failed uploads on given bucket uploaded before now
-            final Date now = new Date (System.currentTimeMillis());
-            getTransferManager().abortMultipartUploads(getContainerName(), now);
             // check if canceled, otherwise throw exception
             exec.checkCanceled();
             throw e;
-        } catch (AmazonS3Exception amazonException) {
+        } catch (S3Exception amazonException) {
             throw new KnimeS3Exception(amazonException);
+        } finally {
+            localFile.delete(); // NOSONAR
         }
     }
 
