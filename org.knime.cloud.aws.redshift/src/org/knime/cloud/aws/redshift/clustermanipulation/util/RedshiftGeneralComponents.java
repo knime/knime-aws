@@ -69,8 +69,7 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.CredentialsProvider;
 import org.knime.core.util.Pair;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import software.amazon.awssdk.regions.GeneratedServiceMetadataProvider;
 
 /**
  * Holding the general components for the Amazon Redshift cluster manipulation nodes.
@@ -96,7 +95,7 @@ public abstract class RedshiftGeneralComponents<S extends RedshiftGeneralSetting
      *
      * @param settings The settings for the dialog components
      */
-    public RedshiftGeneralComponents(final S settings) {
+    protected RedshiftGeneralComponents(final S settings) {
         m_settings = settings;
         List<String> regions = loadRegions();
         m_region = new DialogComponentStringSelection(settings.getRegionModel(),
@@ -105,15 +104,13 @@ public abstract class RedshiftGeneralComponents<S extends RedshiftGeneralSetting
 
     private ArrayList<String> loadRegions() {
         final S model = getSettings();
-        final ArrayList<String> regionNames = new ArrayList<String>();
-        for (final Regions regions : Regions.values()) {
-            final Region region = Region.getRegion(regions);
-            if (region.isServiceSupported(model.getPrefix())) {
-                final String reg = region.getName();
-                regionNames.add(reg);
-            }
-        }
-        return regionNames;
+        final ArrayList<String> regionIds = new ArrayList<String>();
+
+        final var serviceMetadataProvider = new GeneratedServiceMetadataProvider();
+        final var serviceMetadata = serviceMetadataProvider.serviceMetadata(model.getPrefix());
+
+        serviceMetadata.regions().forEach(region -> regionIds.add(region.id()));
+        return regionIds;
     }
 
     /**

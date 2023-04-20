@@ -50,41 +50,48 @@ package org.knime.cloud.aws.redshift.clustermanipulation.util;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelAuthentication.AuthenticationType;
 import org.knime.core.node.workflow.CredentialsProvider;
-import org.knime.core.node.workflow.ICredentials;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.redshift.AmazonRedshiftClient;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.redshift.RedshiftClient;
 
 /**
  * Utility class for the Amazon Redshift cluster manipulation nodes
  *
  * @author Ole Ostergaard, KNIME.com
  */
-public class RedshiftClusterUtility {
+public final class RedshiftClusterUtility {
 
     /**
-     * Returns an {@link AmazonRedshiftClient} according to the given settings and credential provider.
+     * Returns an {@link RedshiftClient} according to the given settings and credential provider.
      *
      * @param settings The settings to use for the client
      * @param credentialsProvider The credential provider to use for the client
-     * @return An {@link AmazonRedshiftClient} according to the given settings and credential provider
+     * @return An {@link RedshiftClient} according to the given settings and credential provider
      */
-    public static AmazonRedshiftClient getClient(final RedshiftGeneralSettings settings,
+    @SuppressWarnings("resource")
+    public static RedshiftClient getClient(final RedshiftGeneralSettings settings,
         final CredentialsProvider credentialsProvider) {
-        AmazonRedshiftClient client = null;
-        if (settings.getAuthenticationModel().getAuthenticationType().equals(AuthenticationType.KERBEROS)) {
-            client = new AmazonRedshiftClient();
-        } else if (settings.getAuthenticationModel().getAuthenticationType().equals(AuthenticationType.CREDENTIALS)) {
-            ICredentials iCredentials = credentialsProvider.get(settings.getAuthenticationModel().getCredential());
-            client =
-                new AmazonRedshiftClient(new BasicAWSCredentials(iCredentials.getLogin(), iCredentials.getPassword()));
-        } else {
 
-            client =
-                new AmazonRedshiftClient(new BasicAWSCredentials(settings.getUserValue(), settings.getPasswordValue()));
+        final AwsCredentialsProvider awsCredentialProvider;
+
+        if (settings.getAuthenticationModel().getAuthenticationType() == AuthenticationType.KERBEROS) {
+            awsCredentialProvider = DefaultCredentialsProvider.builder().build();
+        } else if (settings.getAuthenticationModel().getAuthenticationType() == AuthenticationType.CREDENTIALS) {
+            final var iCredentials = credentialsProvider.get(settings.getAuthenticationModel().getCredential());
+            awsCredentialProvider = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(iCredentials.getLogin(), iCredentials.getPassword()));
+        } else {
+            awsCredentialProvider = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(settings.getUserValue(), settings.getPasswordValue()));
         }
-        client.setEndpoint("https://redshift." + settings.getRegion() + ".amazonaws.com/");
-        return client;
+        return RedshiftClient.builder().region(Region.of(settings.getRegion()))
+                .credentialsProvider(awsCredentialProvider).build();
     }
 
+    private RedshiftClusterUtility () {
+    }
 }

@@ -82,9 +82,8 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.util.StringHistory;
 import org.knime.core.node.workflow.CredentialsProvider;
 
-import com.amazonaws.services.redshift.AmazonRedshiftClient;
-import com.amazonaws.services.redshift.model.Cluster;
-import com.amazonaws.services.redshift.model.DescribeClustersResult;
+import software.amazon.awssdk.services.redshift.RedshiftClient;
+import software.amazon.awssdk.services.redshift.model.Cluster;
 
 /**
  * A {@link DialogComponent} that allows to query existing Amazon Redshift cluster names from within a Dialog.
@@ -112,7 +111,7 @@ public class RedshiftClusterChooserComponent<S extends RedshiftGeneralSettings> 
      * @param model The {@link SettingsModelString} to save the selected or entered cluster name to
      * @param settings the settings for from the dialog
      * @param historyID the history id for the {@link JComboBox}
-     * @param cp The credentials provider for the {@link AmazonRedshiftClient}
+     * @param cp The credentials provider for the {@link RedshiftClient}
      */
     public RedshiftClusterChooserComponent(final SettingsModelString model, final S settings, final String historyID,
         final CredentialsProvider cp) {
@@ -162,29 +161,31 @@ public class RedshiftClusterChooserComponent<S extends RedshiftGeneralSettings> 
                     container = container.getParent();
                 }
                 String clusterName = "";
-                AmazonRedshiftClient client = RedshiftClusterUtility.getClient(settings, m_credentialProvider);
-                String msg = getMsg(client);
-                String[] clusterArray = getClusterArray(client);
-                clusterName = (String)JOptionPane.showInputDialog(frame, msg, "Choose existing cluster name",
-                    JOptionPane.PLAIN_MESSAGE, null, clusterArray, null);
 
-                if (clusterName != null) {
-                    m_existingIntoCB = true;
-                    StringHistory.getInstance(m_historyID).add(clusterName);
-                    setSelection(clusterName);
-                    updateHistory();
-                    m_existingIntoCB = false;
+                try (final var client = RedshiftClusterUtility.getClient(settings, m_credentialProvider)) {
+                    String msg = getMsg(client);
+                    String[] clusterArray = getClusterArray(client);
+                    clusterName = (String)JOptionPane.showInputDialog(frame, msg, "Choose existing cluster name",
+                        JOptionPane.PLAIN_MESSAGE, null, clusterArray, null);
+
+                    if (clusterName != null) {
+                        m_existingIntoCB = true;
+                        StringHistory.getInstance(m_historyID).add(clusterName);
+                        setSelection(clusterName);
+                        updateHistory();
+                        m_existingIntoCB = false;
+                    }
                 }
             }
 
         });
     }
 
-    private String getMsg(final AmazonRedshiftClient client) {
+    private static String getMsg(final RedshiftClient client) {
         String msg = "Choose an existing cluster: ";
         try {
-            DescribeClustersResult describeClusters = client.describeClusters();
-            List<Cluster> clusters = describeClusters.getClusters();
+            final var describeClusters = client.describeClusters();
+            List<Cluster> clusters = describeClusters.clusters();
             if (clusters.size() <= 0) {
                 msg = "No clusters launched";
             }
@@ -220,20 +221,20 @@ public class RedshiftClusterChooserComponent<S extends RedshiftGeneralSettings> 
     }
 
     /**
-     * Returns an array of available clusters for a the given {@link AmazonRedshiftClient}.
+     * Returns an array of available clusters for a the given {@link RedshiftClient}.
      *
-     * @param client the {@link AmazonRedshiftClient}
+     * @param client the {@link RedshiftClient}
      * @return An array of available clusters
      */
-    private String[] getClusterArray(final AmazonRedshiftClient client) {
+    private static String[] getClusterArray(final RedshiftClient client) {
         String[] clusterArray = new String[0];
         try {
-            DescribeClustersResult describeClusters = client.describeClusters();
-            List<Cluster> clusters = describeClusters.getClusters();
+            final var describeClusters = client.describeClusters();
+            List<Cluster> clusters = describeClusters.clusters();
             Iterator<Cluster> iterator = clusters.iterator();
             ArrayList<String> clusterNames = new ArrayList<String>();
             while (iterator.hasNext()) {
-                clusterNames.add(iterator.next().getClusterIdentifier());
+                clusterNames.add(iterator.next().clusterIdentifier());
             }
             clusterArray = clusterNames.toArray(new String[0]);
         } catch (Exception e) {

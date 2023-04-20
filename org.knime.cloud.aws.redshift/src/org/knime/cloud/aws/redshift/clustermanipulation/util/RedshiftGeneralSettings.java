@@ -59,8 +59,8 @@ import org.knime.core.node.defaultnodesettings.SettingsModelInteger;
 import org.knime.core.node.defaultnodesettings.SettingsModelNumber;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import software.amazon.awssdk.regions.GeneratedServiceMetadataProvider;
+import software.amazon.awssdk.regions.Region;
 
 /**
  * Holding general settings for the Amazon Redshift cluster manipulation nodes.
@@ -111,8 +111,8 @@ public class RedshiftGeneralSettings {
      * @throws InvalidSettingsException If the values for the aws authentication are invalid
      */
     public void validateValues() throws InvalidSettingsException {
-        if (getAuthenticationType().equals(AuthenticationType.USER_PWD)
-            || getAuthenticationType().equals(AuthenticationType.CREDENTIALS)) {
+        if (getAuthenticationType() == AuthenticationType.USER_PWD
+            || getAuthenticationType() == AuthenticationType.CREDENTIALS) {
 
             if (useWorkflowCredential()) {
                 if (StringUtils.isBlank(getWorkflowCredential())) {
@@ -136,11 +136,13 @@ public class RedshiftGeneralSettings {
             throw new InvalidSettingsException("Please enter a valid region");
         }
 
-        if (!Region.getRegion(Regions.fromName(getRegion())).isServiceSupported(getPrefix())) {
+        final var serviceMetadataProvider = new GeneratedServiceMetadataProvider();
+        final var serviceMetadata = serviceMetadataProvider.serviceMetadata(getPrefix());
+
+        if (!serviceMetadata.regions().contains(Region.of(getRegion()))) {
             throw new InvalidSettingsException(
                 "The region \"" + getRegion() + "\" is not supported by the service \"" + getPrefix() + "\"");
         }
-
     }
 
     /**

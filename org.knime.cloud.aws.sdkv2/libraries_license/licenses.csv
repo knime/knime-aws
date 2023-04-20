@@ -23,6 +23,7 @@ personalize-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;
 personalizeruntime-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 profiles-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 protocol-core-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
+redshift-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 regions-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 s3-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.
 s3-transfer-manager-2.20.42.jar;https://aws.amazon.com/sdk-for-java/;Apache 2.0 License;http://www.apache.org/licenses/LICENSE-2.0;Amazon Web Services, Inc.

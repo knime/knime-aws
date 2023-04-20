@@ -31,6 +31,7 @@
 	<classpathentry exported="true" kind="lib" path="libs/personalizeruntime-2.20.42.jar" sourcepath="libs/personalizeruntime-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/profiles-2.20.42.jar" sourcepath="libs/profiles-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/protocol-core-2.20.42.jar" sourcepath="libs/protocol-core-2.20.42-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/redshift-2.20.42.jar" sourcepath="libs/redshift-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/regions-2.20.42.jar" sourcepath="libs/regions-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/s3-2.20.42.jar" sourcepath="libs/s3-2.20.42-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/s3-transfer-manager-2.20.42.jar" sourcepath="libs/s3-transfer-manager-2.20.42-sources.jar"/>

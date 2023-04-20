@@ -50,8 +50,6 @@ package org.knime.cloud.aws.redshift.clustermanipulation.creator;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -71,19 +69,14 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObjectSpec;
-import org.knime.core.node.workflow.CredentialsProvider;
-import org.knime.core.node.workflow.ICredentials;
 import org.knime.core.util.Pair;
 
-import com.amazonaws.services.redshift.AmazonRedshift;
-import com.amazonaws.services.redshift.AmazonRedshiftClient;
-import com.amazonaws.services.redshift.model.Cluster;
-import com.amazonaws.services.redshift.model.ClusterAlreadyExistsException;
-import com.amazonaws.services.redshift.model.CreateClusterRequest;
-import com.amazonaws.services.redshift.model.DescribeClustersRequest;
-import com.amazonaws.services.redshift.model.DescribeClustersResult;
-import com.amazonaws.services.redshift.model.Endpoint;
-import com.amazonaws.services.redshift.model.UnauthorizedOperationException;
+import software.amazon.awssdk.services.redshift.RedshiftClient;
+import software.amazon.awssdk.services.redshift.model.Cluster;
+import software.amazon.awssdk.services.redshift.model.ClusterAlreadyExistsException;
+import software.amazon.awssdk.services.redshift.model.CreateClusterRequest;
+import software.amazon.awssdk.services.redshift.model.DescribeClustersRequest;
+import software.amazon.awssdk.services.redshift.model.UnauthorizedOperationException;
 
 /**
  * Create an amazon Redshift cluster given all it's specifications
@@ -96,12 +89,12 @@ class RedshiftClusterLauncherNodeModel extends NodeModel {
     protected final RedshiftClusterLauncherNodeSettings m_settings = createNodeSettings();
 
     static RedshiftClusterLauncherNodeSettings createRedshiftConnectionModel() {
-        return new RedshiftClusterLauncherNodeSettings(AmazonRedshift.ENDPOINT_PREFIX);
+        return new RedshiftClusterLauncherNodeSettings(RedshiftClient.SERVICE_METADATA_ID);
     }
 
-    static ArrayList<String> getClusterTypes() {
-        return new ArrayList<>(
-            Arrays.asList("dc1.large", "dc1.8xlarge", "ds2.xlarge", "ds2.8xlarge", "ds1.xlarge", "ds1.8xlarge"));
+    static List<String> getClusterTypes() {
+        return List.of("ds2.xlarge", "ds2.8xlarge", "dc1.large", "dc1.8xlarge",
+            "dc2.large", "dc2.8xlarge", "ra3.xlplus", "ra3.4xlarge", "ra3.16xlarge");
     }
 
     /** Keyword for single-node operation */
@@ -114,7 +107,7 @@ class RedshiftClusterLauncherNodeModel extends NodeModel {
      * @return the {@link SettingsModelAuthentication} for RedshiftClusterLauncherNodeModel
      */
     protected static RedshiftClusterLauncherNodeSettings createNodeSettings() {
-        return new RedshiftClusterLauncherNodeSettings(AmazonRedshift.ENDPOINT_PREFIX);
+        return new RedshiftClusterLauncherNodeSettings(RedshiftClient.SERVICE_METADATA_ID);
     }
 
     static HashMap<AuthenticationType, Pair<String, String>> getNameMap() {
@@ -138,50 +131,48 @@ class RedshiftClusterLauncherNodeModel extends NodeModel {
      */
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        AmazonRedshiftClient client = RedshiftClusterUtility.getClient(m_settings, getCredentialsProvider());
 
-        CreateClusterRequest request = createClusterRequest();
+        try (final var client = RedshiftClusterUtility.getClient(m_settings, getCredentialsProvider())) {
+            final var request = createClusterRequest();
 
-        try {
-            exec.setMessage("Cluster creation requested");
-            Cluster response = client.createCluster(request);
-            String status = response.getClusterStatus();
-            exec.setMessage("Waiting for cluster availability");
-            while (!status.equalsIgnoreCase("available")) {
-                exec.checkCanceled();
-                Thread.sleep(m_settings.getPollingInterval());
-                response = getClusterRespone(client, response.getClusterIdentifier());
-                status = response.getClusterStatus();
-                exec.setMessage("Cluster status: " + status);
-            }
-            Endpoint endpoint = response.getEndpoint();
-            pushFlowvariables(endpoint.getAddress(), endpoint.getPort(), response.getDBName(),
-                response.getClusterIdentifier());
-        } catch (ClusterAlreadyExistsException e) {
-            if (m_settings.failIfExists()) {
-                Cluster response = getClusterRespone(client, m_settings.getClusterName());
-                if (response.getClusterStatus().equals("deleting")) {
-                    throw new InvalidSettingsException("Cluster " + m_settings.getClusterName() + " is being deleted",
-                        e);
+            try {
+                exec.setMessage("Cluster creation requested");
+                var cluster = client.createCluster(request).cluster();
+                String status = cluster.clusterStatus();
+                exec.setMessage("Waiting for cluster availability");
+                while (!status.equalsIgnoreCase("available")) {
+                    exec.checkCanceled();
+                    Thread.sleep(m_settings.getPollingInterval());
+                    cluster = getCluster(client, m_settings.getClusterName());
+                    status = cluster.clusterStatus();
+                    exec.setMessage("Cluster status: " + status);
+                }
+                final var endpoint = cluster.endpoint();
+                pushFlowvariables(endpoint.address(), endpoint.port(), cluster.dbName(), cluster.clusterIdentifier());
+            } catch (ClusterAlreadyExistsException e) {
+                if (m_settings.failIfExists()) {
+                    final var cluster = getCluster(client, m_settings.getClusterName());
+                    if (cluster.clusterStatus().equals("deleting")) {
+                        throw new InvalidSettingsException("Cluster " + m_settings.getClusterName() + " is being deleted",
+                            e);
+                    } else {
+                        throw new InvalidSettingsException("Cluster " + m_settings.getClusterName() + " alread exists.", e);
+                    }
                 } else {
-                    throw new InvalidSettingsException("Cluster " + m_settings.getClusterName() + " alread exists.", e);
+                    final var cluster = getCluster(client, m_settings.getClusterName());
+                    if (cluster.clusterStatus().equals("deleting")) {
+                        throw new InvalidSettingsException("Cluster " + m_settings.getClusterName() + " is being deleted",
+                            e);
+                    }
+                    final var endpoint = cluster.endpoint();
+                    pushFlowvariables(endpoint.address(), endpoint.port(), cluster.dbName(), cluster.clusterIdentifier());
                 }
-            } else {
-                Cluster response = getClusterRespone(client, m_settings.getClusterName());
-                if (response.getClusterStatus().equals("deleting")) {
-                    throw new InvalidSettingsException("Cluster " + m_settings.getClusterName() + " is being deleted",
-                        e);
-                }
-                Endpoint endpoint = response.getEndpoint();
-                pushFlowvariables(endpoint.getAddress(), endpoint.getPort(), response.getDBName(),
-                    response.getClusterIdentifier());
+            } catch (UnauthorizedOperationException e) {
+                throw new InvalidSettingsException("Check user permissons.", e);
+            } catch (Exception e) {
+                throw e;
             }
-        } catch (UnauthorizedOperationException e) {
-            throw new InvalidSettingsException("Check user permissons.", e);
-        } catch (Exception e) {
-            throw e;
         }
-
         return new PortObject[]{FlowVariablePortObject.INSTANCE};
     }
 
@@ -194,9 +185,9 @@ class RedshiftClusterLauncherNodeModel extends NodeModel {
 
         String masterUser;
         String masterPW;
-        if (m_settings.getClusterCredentials().getAuthenticationType().equals(AuthenticationType.CREDENTIALS)) {
-            CredentialsProvider credentialsProvider = getCredentialsProvider();
-            ICredentials iCredentials = credentialsProvider.get(m_settings.getClusterCredentials().getCredential());
+        if (m_settings.getClusterCredentials().getAuthenticationType() == AuthenticationType.CREDENTIALS) {
+            final var credentialsProvider = getCredentialsProvider();
+            final var iCredentials = credentialsProvider.get(m_settings.getClusterCredentials().getCredential());
             masterUser = iCredentials.getLogin();
             masterPW = iCredentials.getPassword();
         } else {
@@ -207,21 +198,21 @@ class RedshiftClusterLauncherNodeModel extends NodeModel {
         final String clusterName = m_settings.getClusterName();
         final String clusterType = (m_settings.getNodeNumber() > 1) ? MULTI_NODE : SINGLE_NODE;
 
-        CreateClusterRequest request = new CreateClusterRequest().withClusterIdentifier(clusterName)
-            .withMasterUsername(masterUser).withMasterUserPassword(masterPW).withNodeType(m_settings.getNodeType())
-            .withClusterType(clusterType).withDBName(m_settings.getDefaultDBName()).withPort(m_settings.getPort());
+        final var requestBuilder = CreateClusterRequest.builder().clusterIdentifier(clusterName)
+            .masterUsername(masterUser).masterUserPassword(masterPW).nodeType(m_settings.getNodeType())
+            .clusterType(clusterType).dbName(m_settings.getDefaultDBName()).port(m_settings.getPort());
 
         if (clusterType.equals(MULTI_NODE)) {
-            request.withNumberOfNodes(m_settings.getNodeNumber());
+            requestBuilder.numberOfNodes(m_settings.getNodeNumber());
         }
-        return request;
+        return requestBuilder.build();
     }
 
-    private Cluster getClusterRespone(final AmazonRedshiftClient client, final String clusterName) {
-        DescribeClustersResult describeClusters =
-            client.describeClusters(new DescribeClustersRequest().withClusterIdentifier(m_settings.getClusterName()));
-        List<Cluster> clusters = describeClusters.getClusters();
-        return clusters.get(0);
+    private static Cluster getCluster(final RedshiftClient client, final String clusterName) {
+        final var clusterRequest = DescribeClustersRequest.builder()
+                .clusterIdentifier(clusterName).build();
+        final var response = client.describeClusters(clusterRequest);
+        return response.clusters().get(0);
     }
 
     /**
@@ -245,10 +236,10 @@ class RedshiftClusterLauncherNodeModel extends NodeModel {
             }
             postfix += i;
         }
-        pushFlowVariableString(AmazonRedshift.ENDPOINT_PREFIX + "Hostname" + postfix, hostname);
-        pushFlowVariableInt(AmazonRedshift.ENDPOINT_PREFIX + "Port" + postfix, port);
-        pushFlowVariableString(AmazonRedshift.ENDPOINT_PREFIX + "DatabaseName" + postfix, defaultDB);
-        pushFlowVariableString(AmazonRedshift.ENDPOINT_PREFIX + "ClusterName" + postfix, clusterName);
+        pushFlowVariableString(RedshiftClient.SERVICE_METADATA_ID + "Hostname" + postfix, hostname);
+        pushFlowVariableInt(RedshiftClient.SERVICE_METADATA_ID + "Port" + postfix, port);
+        pushFlowVariableString(RedshiftClient.SERVICE_METADATA_ID + "DatabaseName" + postfix, defaultDB);
+        pushFlowVariableString(RedshiftClient.SERVICE_METADATA_ID + "ClusterName" + postfix, clusterName);
     }
 
     /**

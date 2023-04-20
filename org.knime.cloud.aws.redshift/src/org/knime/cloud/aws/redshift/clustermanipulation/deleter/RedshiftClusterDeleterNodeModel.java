@@ -53,7 +53,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 import org.knime.cloud.aws.redshift.clustermanipulation.util.RedshiftClusterUtility;
 import org.knime.core.node.CanceledExecutionException;
@@ -71,13 +70,10 @@ import org.knime.core.node.port.PortType;
 import org.knime.core.node.port.flowvariable.FlowVariablePortObject;
 import org.knime.core.util.Pair;
 
-import com.amazonaws.services.redshift.AmazonRedshift;
-import com.amazonaws.services.redshift.AmazonRedshiftClient;
-import com.amazonaws.services.redshift.model.Cluster;
-import com.amazonaws.services.redshift.model.DeleteClusterRequest;
-import com.amazonaws.services.redshift.model.DescribeClustersRequest;
-import com.amazonaws.services.redshift.model.DescribeClustersResult;
-import com.amazonaws.services.redshift.model.UnauthorizedOperationException;
+import software.amazon.awssdk.services.redshift.RedshiftClient;
+import software.amazon.awssdk.services.redshift.model.DeleteClusterRequest;
+import software.amazon.awssdk.services.redshift.model.DescribeClustersRequest;
+import software.amazon.awssdk.services.redshift.model.UnauthorizedOperationException;
 
 /**
  *
@@ -91,7 +87,7 @@ class RedshiftClusterDeleterNodeModel extends NodeModel {
     protected final RedshiftClusterDeleterNodeSettings m_settings = createNodeSettings();
 
     static RedshiftClusterDeleterNodeSettings createRedshiftConnectionModel() {
-        return new RedshiftClusterDeleterNodeSettings(AmazonRedshift.ENDPOINT_PREFIX);
+        return new RedshiftClusterDeleterNodeSettings(RedshiftClient.SERVICE_METADATA_ID);
     }
 
     static ArrayList<String> getClusterTypes() {
@@ -105,7 +101,7 @@ class RedshiftClusterDeleterNodeModel extends NodeModel {
      * @return the {@link SettingsModelAuthentication} for RedshiftClusterDeleterNodeModel
      */
     protected static RedshiftClusterDeleterNodeSettings createNodeSettings() {
-        return new RedshiftClusterDeleterNodeSettings(AmazonRedshift.ENDPOINT_PREFIX);
+        return new RedshiftClusterDeleterNodeSettings(RedshiftClient.SERVICE_METADATA_ID);
     }
 
     static HashMap<AuthenticationType, Pair<String, String>> getNameMap() {
@@ -129,34 +125,36 @@ class RedshiftClusterDeleterNodeModel extends NodeModel {
      */
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        AmazonRedshiftClient client = RedshiftClusterUtility.getClient(m_settings, getCredentialsProvider());
 
-        DeleteClusterRequest request = new DeleteClusterRequest().withClusterIdentifier(m_settings.getClusterName())
-            .withSkipFinalClusterSnapshot(m_settings.skipFinalClusterSnapshot());
-        if (!m_settings.skipFinalClusterSnapshot()) {
-            request.withFinalClusterSnapshotIdentifier(m_settings.getFinalClusterSnapshotName());
-        }
-        try {
-            exec.setMessage("Cluster creation requested");
-            Cluster response = client.deleteCluster(request);
-            exec.setMessage("Shutting down cluster " + response.getClusterIdentifier());
-            String status = response.getClusterStatus();
-            while (!status.equalsIgnoreCase("deleting")) {
-                exec.checkCanceled();
-                Thread.sleep(m_settings.getPollingInterval());
-                DescribeClustersResult describeClusters = client.describeClusters(
-                    new DescribeClustersRequest().withClusterIdentifier(response.getClusterIdentifier()));
-                List<Cluster> clusters = describeClusters.getClusters();
-                response = clusters.get(0);
-                status = response.getClusterStatus();
+        try (final var client = RedshiftClusterUtility.getClient(m_settings, getCredentialsProvider())) {
+            final var requestBuilder = DeleteClusterRequest.builder().clusterIdentifier(m_settings.getClusterName())
+                    .skipFinalClusterSnapshot(m_settings.skipFinalClusterSnapshot());
+            if (!m_settings.skipFinalClusterSnapshot()) {
+                requestBuilder.finalClusterSnapshotIdentifier(m_settings.getFinalClusterSnapshotName());
             }
-            exec.setMessage("Cluster status: " + status);
-        } catch (UnauthorizedOperationException e) {
-            throw new InvalidSettingsException("Check user permissons.", e);
-        } catch (Exception e) {
-            throw e;
-        }
+            try {
+                exec.setMessage("Cluster creation requested");
+                var cluster = client.deleteCluster(requestBuilder.build()).cluster();
+                exec.setMessage("Shutting down cluster " + cluster.clusterIdentifier());
+                String status = cluster.clusterStatus();
+                while (!status.equalsIgnoreCase("deleting")) {
+                    exec.checkCanceled();
+                    Thread.sleep(m_settings.getPollingInterval());
 
+                    final var clusterRequest = DescribeClustersRequest.builder()
+                            .clusterIdentifier(m_settings.getClusterName()).build();
+
+                    final var response = client.describeClusters(clusterRequest);
+                    cluster = response.clusters().get(0);
+                    status = cluster.clusterStatus();
+                }
+                exec.setMessage("Cluster status: " + status);
+            } catch (UnauthorizedOperationException e) {
+                throw new InvalidSettingsException("Check user permissons.", e);
+            } catch (Exception e) {
+                throw e;
+            }
+        }
         return new PortObject[]{};
     }
 
