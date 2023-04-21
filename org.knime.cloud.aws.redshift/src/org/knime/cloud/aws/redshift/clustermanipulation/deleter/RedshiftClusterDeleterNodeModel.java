@@ -50,8 +50,6 @@ package org.knime.cloud.aws.redshift.clustermanipulation.deleter;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import org.knime.cloud.aws.redshift.clustermanipulation.util.RedshiftClusterUtility;
@@ -88,11 +86,6 @@ class RedshiftClusterDeleterNodeModel extends NodeModel {
 
     static RedshiftClusterDeleterNodeSettings createRedshiftConnectionModel() {
         return new RedshiftClusterDeleterNodeSettings(RedshiftClient.SERVICE_METADATA_ID);
-    }
-
-    static ArrayList<String> getClusterTypes() {
-        return new ArrayList<>(
-            Arrays.asList("dc1.large", "dc1.8xlarge", "ds2.xlarge", "ds2.8xlarge", "ds1.xlarge", "ds1.8xlarge"));
     }
 
     /**
