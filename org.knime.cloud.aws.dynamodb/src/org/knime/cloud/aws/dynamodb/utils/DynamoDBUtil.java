@@ -59,24 +59,23 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonNumber;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
-import javax.json.JsonValue;
-
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBSettings;
 import org.knime.cloud.aws.dynamodb.settings.DynamoDBTableSettings;
 import org.knime.cloud.aws.sdkv2.util.AWSCredentialHelper;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.util.JsonUtil;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonNumber;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -625,7 +624,7 @@ public final class DynamoDBUtil {
         } else if (val.n() != null) {
             return Double.parseDouble(val.n());
         } else if (!val.ss().isEmpty()) {
-            final JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+            final JsonArrayBuilder arrayBuilder = JsonUtil.getProvider().createArrayBuilder();
             for (final String s : val.ss()) {
                 arrayBuilder.add(s);
             }
@@ -635,7 +634,7 @@ public final class DynamoDBUtil {
         } else if (val.b() != null) {
             return val.b().asString(Charset.defaultCharset());
         } else if (!val.bs().isEmpty()) {
-            final JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+            final JsonArrayBuilder arrayBuilder = JsonUtil.getProvider().createArrayBuilder();
             for (final SdkBytes bytes : val.bs()) {
                 arrayBuilder.add(bytes.asString(Charset.defaultCharset()));
             }
@@ -643,7 +642,7 @@ public final class DynamoDBUtil {
         } else if (val.nul() != null) {
             return null;
         } else if (!val.l().isEmpty()) {
-            final JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+            final JsonArrayBuilder arrayBuilder = JsonUtil.getProvider().createArrayBuilder();
             for (final AttributeValue v : val.l()) {
                 final Object o = attributeValueToJsonObject(v);
                 if (o instanceof String) {
@@ -658,7 +657,7 @@ public final class DynamoDBUtil {
             }
             return arrayBuilder.build();
         } else if (!val.m().isEmpty()) {
-            final JsonObjectBuilder objBuilder = Json.createObjectBuilder();
+            final JsonObjectBuilder objBuilder = JsonUtil.getProvider().createObjectBuilder();
             for (final Entry<String, AttributeValue> e : val.m().entrySet()) {
                 final String key = e.getKey();
                 final Object o = attributeValueToJsonObject(e.getValue());
@@ -674,7 +673,7 @@ public final class DynamoDBUtil {
             }
             return objBuilder.build();
         } else if (!val.ns().isEmpty()) {
-            final JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+            final JsonArrayBuilder arrayBuilder = JsonUtil.getProvider().createArrayBuilder();
             for (final String s : val.ns()) {
                 arrayBuilder.add(Double.parseDouble(s));
             }

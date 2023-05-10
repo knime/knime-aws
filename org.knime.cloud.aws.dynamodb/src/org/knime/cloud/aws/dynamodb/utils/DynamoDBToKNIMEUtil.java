@@ -51,8 +51,6 @@ package org.knime.cloud.aws.dynamodb.utils;
 import java.nio.charset.Charset;
 import java.util.stream.Collectors;
 
-import javax.json.JsonValue;
-
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataType;
 import org.knime.core.data.collection.CollectionCellFactory;
@@ -64,6 +62,7 @@ import org.knime.core.data.def.StringCell;
 import org.knime.core.data.json.JSONCell;
 import org.knime.core.data.json.JSONCellFactory;
 
+import jakarta.json.JsonValue;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 /**
