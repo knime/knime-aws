@@ -83,6 +83,9 @@ public final class AwsUtils {
 
     private static final String ROLE_SESSION_NAME = "KNIME_S3_Connection";
 
+    /** Minimum part size for multipart upload **/
+    public static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024; // 5 MB
+
     /**
      * Returns appropriate {@link AwsCredentialsProvider} object from the provided {@link CloudConnectionInformation}.
      *

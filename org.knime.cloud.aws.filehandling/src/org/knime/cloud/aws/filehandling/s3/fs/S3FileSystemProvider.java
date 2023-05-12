@@ -65,6 +65,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -72,13 +73,16 @@ import java.util.Set;
 import org.knime.cloud.aws.filehandling.s3.AwsUtils;
 import org.knime.cloud.aws.filehandling.s3.MultiRegionS3Client;
 import org.knime.core.node.NodeLogger;
+import org.knime.core.node.util.CheckUtils;
 import org.knime.filehandling.core.connections.base.BaseFileSystemProvider;
 import org.knime.filehandling.core.connections.base.attributes.BaseFileAttributes;
 
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.core.internal.util.Mimetype;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.model.Bucket;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -120,12 +124,24 @@ class S3FileSystemProvider extends BaseFileSystemProvider<S3Path, S3FileSystem> 
     @SuppressWarnings("resource")
     @Override
     protected void copyInternal(final S3Path source, final S3Path target, final CopyOption... options) throws IOException {
-        final MultiRegionS3Client client = source.getFileSystem().getClient();
+        final var client = source.getFileSystem().getClient();
 
         if (!source.isDirectory()) {
             try {
-                client.copyObject(source.getBucketName(), source.getBlobName(), target.getBucketName(),
-                    target.getBlobName());
+                final var object = client.headObject(source.getBucketName(), source.getBlobName());
+                final var objectSize = object.contentLength();
+                final var sseCustomerAlgorithm = object.sseCustomerAlgorithm();
+                final int partSize = source.getFileSystem().getMultipartUploadPartSize();
+
+                CheckUtils.checkArgument(partSize >= AwsUtils.MINIMUM_PART_SIZE,
+                        "Mutipart upload part size cannot be less than " + AwsUtils.MINIMUM_PART_SIZE);
+
+                if (objectSize <= partSize) {
+                    client.copyObject(source.getBucketName(), source.getBlobName(),
+                        target.getBucketName(), target.getBlobName());
+                } else {
+                    copyUsingMultipartUpload(source, target, objectSize, sseCustomerAlgorithm);
+                }
             } catch (final SdkException ex) {
                 throw AwsUtils.toIOE(ex, source, target);
             }
@@ -135,6 +151,44 @@ class S3FileSystemProvider extends BaseFileSystemProvider<S3Path, S3FileSystem> 
                     String.format("Target directory %s exists and is not empty", target.toString()));
             }
             createDirectory(target);
+        }
+    }
+
+    @SuppressWarnings("resource")
+    private static void copyUsingMultipartUpload(final S3Path source, final S3Path target,
+        final long objectSize, final String sseCustomerAlgorithm) {
+        final var client = source.getFileSystem().getClient();
+        final long partSize = source.getFileSystem().getMultipartUploadPartSize();
+
+        final var mimeType = Mimetype.getInstance().getMimetype(target);
+        final var uploadId = client.createMultipartUpload(target.getBucketName(),
+            target.getBlobName(), mimeType).uploadId();
+
+        var partNumber = 1;
+        long bytePosition = 0;
+        final var uploadedParts = new ArrayList<CompletedPart>();
+        try {
+            while(bytePosition < objectSize) {
+                // The last part might be smaller than partSize, so check to make sure
+                // that lastByte isn't beyond the end of the object.
+                long lastByte = Math.min(bytePosition + partSize - 1, objectSize - 1);
+
+                final var response = client.uploadPartCopy(source.getBucketName(), source.getBlobName(), //
+                    target.getBucketName(), target.getBlobName(), uploadId, partNumber,
+                    bytePosition, lastByte, sseCustomerAlgorithm);
+
+                uploadedParts.add(CompletedPart.builder() //
+                    .partNumber(partNumber) //
+                    .eTag(response.copyPartResult().eTag()) //
+                    .build());
+                bytePosition += partSize;
+                partNumber++;
+            }
+            client.completeMultipartUpload(target.getBucketName(), target.getBlobName(), uploadId, uploadedParts);
+
+        } catch (SdkException ex) {
+            client.abortMultipartUpload(target.getBucketName(), target.getBlobName(), uploadId);
+            throw ex;
         }
     }
 
