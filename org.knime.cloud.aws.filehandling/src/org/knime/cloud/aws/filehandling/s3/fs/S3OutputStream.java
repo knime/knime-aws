@@ -87,8 +87,6 @@ public class S3OutputStream extends OutputStream {
 
     private static final NodeLogger LOG = NodeLogger.getLogger(S3OutputStream.class);
 
-    private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024; // 5 MB
-
     private final S3Path m_path;
 
     private final String m_mimeType;
@@ -126,8 +124,8 @@ public class S3OutputStream extends OutputStream {
         m_executor = Executors.newSingleThreadExecutor();
 
         m_maxPartSize = path.getFileSystem().getMultipartUploadPartSize();
-        CheckUtils.checkArgument(m_maxPartSize >= MINIMUM_PART_SIZE,
-                "Mutipart upload part size cannot be less than " + MINIMUM_PART_SIZE);
+        CheckUtils.checkArgument(m_maxPartSize >= AwsUtils.MINIMUM_PART_SIZE,
+                "Mutipart upload part size cannot be less than " + AwsUtils.MINIMUM_PART_SIZE);
 
         m_isOpen = true;
 
@@ -234,7 +232,7 @@ public class S3OutputStream extends OutputStream {
 
     @Override
     public void flush() throws IOException {
-        if (m_isOpen && m_currentChannelBytesWritten > MINIMUM_PART_SIZE && m_uploadId != null) {
+        if (m_isOpen && m_currentChannelBytesWritten > AwsUtils.MINIMUM_PART_SIZE && m_uploadId != null) {
             submitPartIfNecessary(true);
         }
     }

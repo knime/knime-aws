@@ -49,10 +49,7 @@
 package org.knime.cloud.aws.filehandling.s3;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -91,6 +88,8 @@ import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.UploadPartCopyRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartCopyResponse;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartResponse;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -517,6 +516,48 @@ public class MultiRegionS3Client implements AutoCloseable {
     }
 
     /**
+     * Copies a single part of the multipart upload.
+     *
+     * @param sourceBucket The source bucket name.
+     * @param sourceKey The source object key.
+     * @param destBucket The destination bucket name.
+     * @param destKey The destination bucket name.
+     * @param uploadId The multipart upload id.
+     * @param partNumber The part number.
+     * @param bytePosition The byte position.
+     * @param lastByte The last byte position.
+     * @param sseCustomerAlgorithm The algorithm to use when decrypting the source object.
+     * @return The response object.
+     */
+    @SuppressWarnings("resource")
+    public UploadPartCopyResponse uploadPartCopy(final String sourceBucket, final String sourceKey, //NOSONAR
+        final String destBucket, final String destKey, final String uploadId,
+        final int partNumber, final long bytePosition, final long lastByte,
+        final String sseCustomerAlgorithm) {
+
+        final var builder = UploadPartCopyRequest.builder()//
+            .sourceBucket(sourceBucket)//
+            .sourceKey(sourceKey)//
+            .destinationBucket(destBucket)//
+            .destinationKey(destKey)//
+            .uploadId(uploadId)//
+            .partNumber(partNumber)//
+            .copySourceRange(String.format("bytes=%d-%d", bytePosition, lastByte));
+
+        if (m_sseEnabled && m_sseMode == SSEMode.CUSTOMER_PROVIDED) {
+            if (sseCustomerAlgorithm != null) {
+                builder.copySourceSSECustomerAlgorithm(AES256);
+                builder.copySourceSSECustomerKey(m_customerKey);
+                builder.copySourceSSECustomerKeyMD5(m_customerKeyMD5);
+            }
+            builder.sseCustomerAlgorithm(AES256);
+            builder.sseCustomerKey(m_customerKey);
+            builder.sseCustomerKeyMD5(m_customerKeyMD5);
+        }
+        return getClientForBucket(destBucket).uploadPartCopy(builder.build());
+    }
+
+    /**
      * Completes the multipart upload.
      *
      * @param bucket The bucket name.
@@ -566,7 +607,8 @@ public class MultiRegionS3Client implements AutoCloseable {
     @SuppressWarnings("resource")
     public void copyObject(final String srcBucket, final String srcKey, final String dstBucket, final String dstKey) {
         final var builder = CopyObjectRequest.builder()//
-            .copySource(encodeCopySource(srcBucket, srcKey))//
+            .sourceBucket(srcBucket)//
+            .sourceKey(srcKey)//
             .destinationBucket(dstBucket)//
             .destinationKey(dstKey);
 
@@ -593,15 +635,6 @@ public class MultiRegionS3Client implements AutoCloseable {
         }
 
         getClientForBucket(dstBucket).copyObject(builder.build());
-    }
-
-    private static String encodeCopySource(final String bucket, final String blob) {
-        try {
-            // Note that URLEncoder uses the x-www-form-urlencoded format and we need a URL encoded version with spaces encoded as %20 not +
-            return URLEncoder.encode(bucket + "/" + blob, StandardCharsets.UTF_8.toString()).replace("+", "%20");
-        } catch (UnsupportedEncodingException ex) {//NOSONAR should not happen
-            return null;
-        }
     }
 
     /**
