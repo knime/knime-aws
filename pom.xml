@@ -94,6 +94,11 @@
 			<layout>p2</layout>
 			<url>${knime.database.p2}</url>
 		</repository>
+        <repository>
+            <id>p2-knime-gateway</id>
+            <layout>p2</layout>
+            <url>${knime.gateway.p2}</url>
+        </repository>
 		<repository>
 			<id>p2-knime-office365</id>
 			<layout>p2</layout>
