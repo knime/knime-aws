@@ -237,6 +237,10 @@ public class AWSConnectionInformationSettings extends ConnectionInformationCloud
         m_switchRoleAccount.saveSettingsTo(settings);
         m_switchRoleName.saveSettingsTo(settings);
         m_useSessionToken.saveSettingsTo(settings);
+        // only persist credentials when needed, see AP-21749
+        if (!m_useSessionToken.isEnabled() || !m_useSessionToken.getBooleanValue()) {
+            m_sessionToken.setStringValue("");
+        }
         m_sessionToken.saveSettingsTo(settings);
     }
 

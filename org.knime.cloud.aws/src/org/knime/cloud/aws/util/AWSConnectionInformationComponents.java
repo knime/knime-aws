@@ -68,6 +68,8 @@ import org.knime.core.node.defaultnodesettings.DialogComponentBoolean;
 import org.knime.core.node.defaultnodesettings.DialogComponentString;
 import org.knime.core.node.defaultnodesettings.DialogComponentStringSelection;
 import org.knime.core.node.defaultnodesettings.SettingsModelAuthentication.AuthenticationType;
+import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
+import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.CredentialsProvider;
 import org.knime.core.util.Pair;
@@ -299,6 +301,11 @@ public final class AWSConnectionInformationComponents
         m_switchRoleAccount.saveSettingsTo(settings);
         m_switchRoleName.saveSettingsTo(settings);
         m_useSessionToken.saveSettingsTo(settings);
+        // only persist credentials when needed, see AP-21749
+        final var useSessionTokenModel = (SettingsModelBoolean)m_useSessionToken.getModel();
+        if (!useSessionTokenModel.isEnabled() || !useSessionTokenModel.getBooleanValue()) {
+            ((SettingsModelString)m_sessionToken.getModel()).setStringValue("");
+        }
         m_sessionToken.saveSettingsTo(settings);
     }
 }
