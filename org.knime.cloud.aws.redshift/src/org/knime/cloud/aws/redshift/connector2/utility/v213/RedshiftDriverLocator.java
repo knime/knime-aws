@@ -67,4 +67,9 @@ public class RedshiftDriverLocator extends RedshiftAbstractDriverLocator {
     public String getDriverClassName() {
         return "com.amazon.redshift.Driver";
     }
+
+    @Override
+    public boolean isDeprecated() {
+        return true;
+    }
 }

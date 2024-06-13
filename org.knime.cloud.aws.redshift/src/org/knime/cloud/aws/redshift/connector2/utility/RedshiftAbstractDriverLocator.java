@@ -112,7 +112,7 @@ public abstract class RedshiftAbstractDriverLocator extends AbstractDriverLocato
 
     @Override
     public String getDriverName() {
-        return "Driver for Amazon Redshift v. " + getVersion();
+        return DBDriverLocator.createDriverName(getDBType(), getVersion(), isDeprecated());
     }
 
     @Override
