@@ -63,7 +63,7 @@ public class RedshiftDriverLocator extends RedshiftAbstractDriverLocator {
      * Default Constructor.
      */
     public RedshiftDriverLocator() {
-        super("", emptySet());
+        super("1.2.0", emptySet());
     }
 
     @Override
@@ -72,12 +72,12 @@ public class RedshiftDriverLocator extends RedshiftAbstractDriverLocator {
     }
 
     @Override
-    public String getDriverName() {
-        return "Amazon Redshift";
+    public String getDriverClassName() {
+        return "com.amazon.redshift.jdbc.Driver";
     }
 
     @Override
-    public String getDriverClassName() {
-        return "com.amazon.redshift.jdbc.Driver";
+    public boolean isDeprecated() {
+        return true;
     }
 }
