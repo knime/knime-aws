@@ -20,7 +20,9 @@
    </feature>
    <feature id="org.knime.features.cloud.aws.redshift" version="0.0.0">
        <category name="knime-aws" />
-   </feature>   
+   </feature>
+   <feature id="org.knime.features.cloud.aws.redshift.deprecated" version="0.0.0"/>
+   <feature id="org.knime.features.cloud.aws.redshift.driver" version="0.0.0" /> 
    <feature id="org.knime.features.cloud.aws.redshift.source" version="0.0.0">
        <category name="knime-aws" />
    </feature>

@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: KNIME Amazon Redshift Deprecated Connector And Cluster Tools
+Bundle-SymbolicName: org.knime.cloud.aws.redshift.deprecated;singleton:=true
+Bundle-Version: 5.4.0.qualifier
+Bundle-Vendor: KNIME AG, Zurich, Switzerland
+Require-Bundle: org.knime.database;bundle-version="[5.4.0,6.0.0)",
+ org.knime.cloud.aws.redshift;bundle-version="5.4.0"
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Automatic-Module-Name: org.knime.cloud.aws.redshift

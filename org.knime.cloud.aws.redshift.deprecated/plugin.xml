@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?eclipse version="3.0"?>
+<plugin>
+   <extension point="org.knime.database.Driver">
+      <Driver
+            locator="org.knime.cloud.aws.redshift.connector2.utility.RedshiftDriverLocator">
+      </Driver>
+      <Driver
+            locator="org.knime.cloud.aws.redshift.connector2.utility.v213.RedshiftDriverLocator">
+      </Driver>
+   </extension>
+</plugin>

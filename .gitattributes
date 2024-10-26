@@ -33,3 +33,4 @@
 *.sym binary filter=lfs diff=lfs merge=lfs
 *.msi binary filter=lfs diff=lfs merge=lfs
 *.tar.gz binary filter=lfs diff=lfs merge=lfs
+org.knime.cloud.aws.redshift.driver/lib/RedshiftJDBC42-1.2.1.1001.jar filter=lfs diff=lfs merge=lfs -text

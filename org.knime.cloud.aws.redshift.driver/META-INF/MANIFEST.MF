@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Amazon Redshift Driver
+Bundle-SymbolicName: org.knime.cloud.aws.redshift.driver;singleton:=true
+Bundle-Version: 5.4.0.qualifier
+Fragment-Host: org.knime.cloud.aws.redshift;bundle-version="[5.2.0,6.0.0)"
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Bundle-ClassPath: lib/RedshiftJDBC42-1.2.1.1001.jar
+Bundle-Vendor: KNIME AG, Zurich, Switzerland
+Eclipse-BundleShape: dir
+Automatic-Module-Name: org.knime.cloud.aws.redshift.driver

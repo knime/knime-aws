@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
-		<attributes>
-			<attribute name="module" value="true"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
-	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="src/"/>
 	<classpathentry exported="true" kind="lib" path="libs/annotations-2.25.61.jar" sourcepath="libs/annotations-2.25.61-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/apache-client-2.25.61.jar" sourcepath="libs/apache-client-2.25.61-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/arns-2.25.61.jar" sourcepath="libs/arns-2.25.61-sources.jar"/>
@@ -47,5 +43,5 @@
 	<classpathentry exported="true" kind="lib" path="libs/third-party-jackson-core-2.25.61.jar" sourcepath="libs/third-party-jackson-core-2.25.61-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/translate-2.25.61.jar" sourcepath="libs/translate-2.25.61-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/utils-2.25.61.jar" sourcepath="libs/utils-2.25.61-sources.jar"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="output" path="target/classes"/>
 </classpath>

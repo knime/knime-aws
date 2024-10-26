@@ -47,7 +47,6 @@ package org.knime.cloud.aws.redshift.connector2.utility.v213;
 import java.util.Collections;
 
 import org.knime.cloud.aws.redshift.connector2.utility.RedshiftAbstractDriverLocator;
-
 /**
  * This class contains a Amazon Redshift driver definition for version 2.1.0.3.
  * The definition will be used by Eclipse extensions API to create a database driver instance.
