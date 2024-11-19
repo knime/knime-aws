@@ -75,31 +75,82 @@ final class TranslateUtils {
     private static final Map<String, String> SUPPORTED_LANGS;
     static {
         Map<String, String> langMap = new LinkedHashMap<>();
-        langMap.put("Arabic", "ar");
-        langMap.put("Chinese (Simplified)", "zh");
-        langMap.put("Chinese (Traditional)", "zh-TW");
-        langMap.put("Czech", "cs");
-        langMap.put("Danish", "da");
-        langMap.put("Dutch", "nl");
-        langMap.put("English", "en");
-        langMap.put("Finnish", "fi");
-        langMap.put("French", "fr");
-        langMap.put("German", "de");
-        langMap.put("Hebrew", "he");
-        langMap.put("Hindi", "hi");
-        langMap.put("Indonesian", "id");
-        langMap.put("Italian", "it");
-        langMap.put("Japanese", "ja");
-        langMap.put("Korean", "ko");
-        langMap.put("Malay", "ms");
-        langMap.put("Norwegian", "no");
-        langMap.put("Persian", "fa");
-        langMap.put("Polish", "pl");
-        langMap.put("Portuguese", "pt");
-        langMap.put("Russian", "ru");
-        langMap.put("Spanish", "es");
-        langMap.put("Swedish", "sv");
-        langMap.put("Turkish", "tr");
+        langMap.put("Afrikaans ", "af");
+        langMap.put("Albanian ", "sq");
+        langMap.put("Amharic ", "am");
+        langMap.put("Arabic ", "ar");
+        langMap.put("Armenian ", "hy");
+        langMap.put("Azerbaijani ", "az");
+        langMap.put("Bengali ", "bn");
+        langMap.put("Bosnian ", "bs");
+        langMap.put("Bulgarian ", "bg");
+        langMap.put("Catalan ", "ca");
+        langMap.put("Chinese (Simplified) ", "zh");
+        langMap.put("Chinese (Traditional) ", "zh-TW");
+        langMap.put("Croatian ", "hr");
+        langMap.put("Czech ", "cs");
+        langMap.put("Danish ", "da");
+        langMap.put("Dari ", "fa-AF");
+        langMap.put("Dutch ", "nl");
+        langMap.put("English ", "en");
+        langMap.put("Estonian ", "et");
+        langMap.put("Farsi (Persian) ", "fa");
+        langMap.put("Filipino, Tagalog ", "tl");
+        langMap.put("Finnish ", "fi");
+        langMap.put("French ", "fr");
+        langMap.put("French (Canada) ", "fr-CA");
+        langMap.put("Georgian ", "ka");
+        langMap.put("German ", "de");
+        langMap.put("Greek ", "el");
+        langMap.put("Gujarati ", "gu");
+        langMap.put("Haitian Creole ", "ht");
+        langMap.put("Hausa ", "ha");
+        langMap.put("Hebrew ", "he");
+        langMap.put("Hindi ", "hi");
+        langMap.put("Hungarian ", "hu");
+        langMap.put("Icelandic ", "is");
+        langMap.put("Indonesian ", "id");
+        langMap.put("Irish ", "ga");
+        langMap.put("Italian ", "it");
+        langMap.put("Japanese ", "ja");
+        langMap.put("Kannada ", "kn");
+        langMap.put("Kazakh ", "kk");
+        langMap.put("Korean ", "ko");
+        langMap.put("Latvian ", "lv");
+        langMap.put("Lithuanian ", "lt");
+        langMap.put("Macedonian ", "mk");
+        langMap.put("Malay ", "ms");
+        langMap.put("Malayalam ", "ml");
+        langMap.put("Maltese ", "mt");
+        langMap.put("Marathi ", "mr");
+        langMap.put("Mongolian ", "mn");
+        langMap.put("Norwegian (Bokmål) ", "no");
+        langMap.put("Pashto ", "ps");
+        langMap.put("Polish ", "pl");
+        langMap.put("Portuguese (Brazil) ", "pt");
+        langMap.put("Portuguese (Portugal) ", "pt-PT");
+        langMap.put("Punjabi ", "pa");
+        langMap.put("Romanian ", "ro");
+        langMap.put("Russian ", "ru");
+        langMap.put("Serbian ", "sr");
+        langMap.put("Sinhala ", "si");
+        langMap.put("Slovak ", "sk");
+        langMap.put("Slovenian ", "sl");
+        langMap.put("Somali ", "so");
+        langMap.put("Spanish ", "es");
+        langMap.put("Spanish (Mexico) ", "es-MX");
+        langMap.put("Swahili ", "sw");
+        langMap.put("Swedish ", "sv");
+        langMap.put("Tamil ", "ta");
+        langMap.put("Telugu ", "te");
+        langMap.put("Thai ", "th");
+        langMap.put("Turkish ", "tr");
+        langMap.put("Ukrainian ", "uk");
+        langMap.put("Urdu ", "ur");
+        langMap.put("Uzbek ", "uz");
+        langMap.put("Vietnamese ", "vi");
+        langMap.put("Welsh ", "cy");
+
         SUPPORTED_LANGS = Collections.unmodifiableMap(langMap);
     }
 
@@ -146,9 +197,9 @@ final class TranslateUtils {
         if (sourceLang.equals(targetLang)) {
             throw new InvalidSettingsException("Source and target language cannot be the same.");
         } else if (UNSUPPORTED_PAIRS.containsKey(sourceLang)
-            && UNSUPPORTED_PAIRS.get(sourceLang).contains(targetLang)) {
+                && UNSUPPORTED_PAIRS.get(sourceLang).contains(targetLang)) {
             throw new InvalidSettingsException(
-                ("Translating from " + sourceLang + " to " + targetLang + " is not supported."));
+                    ("Translating from " + sourceLang + " to " + targetLang + " is not supported."));
         }
     }
 
