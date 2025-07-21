@@ -81,6 +81,7 @@ import software.amazon.awssdk.services.s3.S3Client;
  *
  * @author Budi Yanto, KNIME.com
  */
+@Deprecated
 public class S3ConnectionNodeModel extends NodeModel {
 
 	private final AWSConnectionInformationSettings m_model = createAWSConnectionModel();
@@ -98,8 +99,10 @@ public class S3ConnectionNodeModel extends NodeModel {
 
 	/**
 	 * Constructor for the node model.
+	 * @deprecated
 	 */
-	protected S3ConnectionNodeModel() {
+	@Deprecated
+    protected S3ConnectionNodeModel() {
 		super(new PortType[] {}, new PortType[] { AWSConnectionInformationPortObject.TYPE });
 	}
 
@@ -176,7 +179,8 @@ public class S3ConnectionNodeModel extends NodeModel {
 	 * @throws InvalidSettingsException
 	 *             ...
 	 */
-	private CloudConnectionInformationPortObjectSpec createSpec() throws InvalidSettingsException {
+	@Deprecated
+    private CloudConnectionInformationPortObjectSpec createSpec() throws InvalidSettingsException {
 		m_model.validateValues();
 		final CloudConnectionInformation connectionInformation = m_model
 				.createConnectionInformation(getCredentialsProvider(), S3RemoteFileHandler.PROTOCOL);

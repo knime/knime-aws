@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
  *
  * @author Budi Yanto, KNIME.com
  */
+@Deprecated
 public class S3FilePickerNodeModel extends AbstractFilePickerNodeModel{
 
 	private static NodeLogger LOGGER = NodeLogger.getLogger(S3FilePickerNodeModel.class);

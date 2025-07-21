@@ -79,6 +79,7 @@ import org.knime.core.node.port.PortObjectSpec;
  *
  * @author Julian Bunzel, KNIME GmbH, Berlin, Germany
  */
+@Deprecated
 class AmazonAuthenticationNodeDialog extends NodeDialogPane {
 
     private final AWSConnectionInformationSettings m_settings =
@@ -121,7 +122,9 @@ class AmazonAuthenticationNodeDialog extends NodeDialogPane {
      *
      *
      * @author Patrick Winter, KNIME AG, Zurich, Switzerland
+     * @deprecated
      */
+    @Deprecated
     private class TestConnectionListener implements ActionListener {
 
         /**

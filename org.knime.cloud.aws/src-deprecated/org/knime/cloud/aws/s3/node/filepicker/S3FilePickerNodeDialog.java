@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.s3.S3Client;
  *
  * @author Budi Yanto, KNIME.com
  */
+@Deprecated
 public class S3FilePickerNodeDialog extends AbstractFilePickerNodeDialog {
 
 	private ConnectionInformation m_connectionInformation;

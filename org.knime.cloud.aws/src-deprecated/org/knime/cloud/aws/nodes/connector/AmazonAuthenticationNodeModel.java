@@ -75,6 +75,7 @@ import org.knime.core.util.Pair;
  *
  * @author Julian Bunzel, KNIME GmbH, Berlin, Germany
  */
+@Deprecated
 final class AmazonAuthenticationNodeModel extends NodeModel {
 
     /** Settings containing information about the AWS connection. */
@@ -98,7 +99,9 @@ final class AmazonAuthenticationNodeModel extends NodeModel {
 
     /**
      * Constructor for the node model.
+     * @deprecated
      */
+    @Deprecated
     AmazonAuthenticationNodeModel() {
         super(new PortType[]{}, new PortType[]{AmazonConnectionInformationPortObject.TYPE});
     }
@@ -150,7 +153,9 @@ final class AmazonAuthenticationNodeModel extends NodeModel {
      *
      * @return ConnectionInformationPortObjectSpec
      * @throws InvalidSettingsException ...
+     * @deprecated
      */
+    @Deprecated
     private CloudConnectionInformationPortObjectSpec createSpec() throws InvalidSettingsException {
         m_model.validateValues();
         // TODO fix protocol -- S3 as placeholder but it's ignored downstream

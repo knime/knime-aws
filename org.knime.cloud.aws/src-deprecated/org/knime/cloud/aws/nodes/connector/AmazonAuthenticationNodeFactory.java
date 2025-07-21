@@ -57,6 +57,7 @@ import org.knime.core.node.NodeView;
  *
  * @author Julian Bunzel, KNIME GmbH, Berlin, Germany
  */
+@Deprecated
 public class AmazonAuthenticationNodeFactory extends NodeFactory<AmazonAuthenticationNodeModel> {
 
     @Override

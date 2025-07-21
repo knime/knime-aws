@@ -75,6 +75,7 @@ import org.knime.core.node.port.PortObjectSpec;
  *
  * @author Budi Yanto, KNIME.com
  */
+@Deprecated
 public class S3ConnectionNodeDialog extends NodeDialogPane {
 
 	private final AWSConnectionInformationComponents m_awsComp = new AWSConnectionInformationComponents(
@@ -134,6 +135,7 @@ public class S3ConnectionNodeDialog extends NodeDialogPane {
 	 *
 	 * @author Patrick Winter, KNIME AG, Zurich, Switzerland
 	 */
+	@Deprecated
 	private class TestConnectionListener implements ActionListener {
 
 		/**

@@ -4,7 +4,7 @@
 	xmlns="http://knime.org/node/v4.1"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://knime.org/node/v4.1 http://knime.org/node/v4.1.xsd">
-    <name>Amazon S3 File Picker (legacy)</name>
+    <name>Amazon S3 File Picker</name>
     
     <shortDescription>
         Generates a pre-signed URL of an Amazon S3 object. 
