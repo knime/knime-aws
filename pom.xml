@@ -27,7 +27,7 @@
 		<module>org.knime.cloud.aws.sdkv2</module>
 		<module>org.knime.cloud.aws</module>
 		<module>org.knime.cloud.aws.filehandling</module>
-		<module>org.knime.cloud.aws.filehandling.tests</module>    
+		<module>org.knime.cloud.aws.filehandling.tests</module>
 		<module>org.knime.features.cloud.aws</module>
 		<module>org.knime.update.aws</module>
 	</modules>
