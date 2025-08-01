@@ -54,7 +54,7 @@ Bundle-ClassPath: .,
  libs/translate-2.25.61.jar,
  libs/utils-2.25.61.jar
 Bundle-ActivationPolicy: lazy
-Bundle-RequiredExecutionEnvironment: JavaSE-11
+Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: org.knime.cloud.aws.sdkv2
 Export-Package: org.knime.cloud.aws.sdkv2.util,
  software.amazon.awssdk.annotations,
