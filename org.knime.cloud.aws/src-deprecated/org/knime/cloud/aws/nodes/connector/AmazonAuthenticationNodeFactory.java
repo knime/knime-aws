@@ -48,41 +48,112 @@
  */
 package org.knime.cloud.aws.nodes.connector;
 
+import static org.knime.node.impl.description.PortDescription.fixedPort;
+
+import java.util.List;
+import java.util.Map;
+
+import org.knime.core.node.NodeDescription;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeFactory;
 import org.knime.core.node.NodeView;
+import org.knime.core.webui.node.dialog.NodeDialog;
+import org.knime.core.webui.node.dialog.NodeDialogFactory;
+import org.knime.core.webui.node.dialog.NodeDialogManager;
+import org.knime.core.webui.node.dialog.SettingsType;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultKaiNodeInterface;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeDialog;
+import org.knime.core.webui.node.dialog.kai.KaiNodeInterface;
+import org.knime.core.webui.node.dialog.kai.KaiNodeInterfaceFactory;
+import org.knime.node.impl.description.DefaultNodeDescriptionUtil;
+import org.knime.node.impl.description.PortDescription;
 
 /**
  * Node factory for AWS Authentication node.
  *
  * @author Julian Bunzel, KNIME GmbH, Berlin, Germany
+ * @author Sascha Wolke, KNIME GmbH, Berlin, Germany
+ * @author AI Migration Pipeline v1.2
  */
 @Deprecated
-public class AmazonAuthenticationNodeFactory extends NodeFactory<AmazonAuthenticationNodeModel> {
+@SuppressWarnings("restriction")
+public class AmazonAuthenticationNodeFactory extends NodeFactory<AmazonAuthenticationNodeModel>
+    implements NodeDialogFactory, KaiNodeInterfaceFactory {
 
+    @Deprecated
     @Override
     public AmazonAuthenticationNodeModel createNodeModel() {
         return new AmazonAuthenticationNodeModel();
     }
 
+    @Deprecated
     @Override
     public int getNrNodeViews() {
         return 0;
     }
 
+    @Deprecated
     @Override
     public NodeView<AmazonAuthenticationNodeModel> createNodeView(final int viewIndex,
         final AmazonAuthenticationNodeModel nodeModel) {
         return null;
     }
 
+    @Deprecated
     @Override
     public boolean hasDialog() {
         return true;
     }
+    private static final String NODE_NAME = "Amazon Authenticator";
+    private static final String NODE_ICON = "../../icons/aws_authenticator.png";
+    private static final String SHORT_DESCRIPTION = """
+            Configures the connection information used to connect to several Amazon services.
+            """;
+    private static final String FULL_DESCRIPTION = """
+            <p> This node configures the connection information that will be used to connect to several Amazon
+                services like AWS Comprehend or AWS Translate. </p>
+            """;
+    private static final List<PortDescription> INPUT_PORTS = List.of();
+    private static final List<PortDescription> OUTPUT_PORTS = List.of(
+            fixedPort("Connection information port", """
+                Port object containing the AWS connection information.
+                """)
+    );
 
     @Override
     public NodeDialogPane createNodeDialogPane() {
-        return new AmazonAuthenticationNodeDialog();
+        return NodeDialogManager.createLegacyFlowVariableNodeDialog(createNodeDialog());
     }
+
+    @Deprecated
+    @Override
+    public NodeDialog createNodeDialog() {
+        return new DefaultNodeDialog(SettingsType.MODEL, AmazonAuthenticationNodeParameters.class);
+    }
+
+    @Deprecated
+    @Override
+    public NodeDescription createNodeDescription() {
+        return DefaultNodeDescriptionUtil.createNodeDescription( //
+            NODE_NAME, //
+            NODE_ICON, //
+            INPUT_PORTS, //
+            OUTPUT_PORTS, //
+            SHORT_DESCRIPTION, //
+            FULL_DESCRIPTION, //
+            List.of(), //
+            AmazonAuthenticationNodeParameters.class, //
+            null, //
+            NodeType.Source, //
+            List.of(), //
+            null //
+        );
+    }
+
+    @Deprecated
+    @Override
+    public KaiNodeInterface createKaiNodeInterface() {
+        return new DefaultKaiNodeInterface(Map.of(SettingsType.MODEL, AmazonAuthenticationNodeParameters.class));
+    }
+
 }

@@ -50,7 +50,6 @@ package org.knime.cloud.aws.nodes.connector;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 
 import org.knime.cloud.aws.s3.filehandler.S3RemoteFileHandler;
 import org.knime.cloud.aws.util.AWSConnectionInformationSettings;
@@ -64,11 +63,9 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
-import org.knime.core.node.defaultnodesettings.SettingsModelAuthentication.AuthenticationType;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
-import org.knime.core.util.Pair;
 
 /**
  * Node model for the Amazon Authenticator node.
@@ -84,17 +81,6 @@ final class AmazonAuthenticationNodeModel extends NodeModel {
     /** Method to create a new settings object containing information about the AWS connection. */
     static final AWSConnectionInformationSettings createAWSConnectionModel() {
         return new AWSConnectionInformationSettings(null);
-    }
-
-    /** Returs a map of authentication type and credentials. */
-    static HashMap<AuthenticationType, Pair<String, String>> getNameMap() {
-        final HashMap<AuthenticationType, Pair<String, String>> nameMap = new HashMap<>();
-        nameMap.put(AuthenticationType.USER_PWD, new Pair<>("Access Key ID and Secret Key",
-            "Access Key ID and Secret Access Key based authentication"));
-        nameMap.put(AuthenticationType.KERBEROS, new Pair<>("Default Credential Provider Chain",
-            "Use the Default Credential Provider Chain for authentication"));
-        nameMap.put(AuthenticationType.NONE, new Pair<>("Anonymous Credentials", "Use Anonymous Credentials"));
-        return nameMap;
     }
 
     /**

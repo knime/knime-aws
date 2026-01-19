@@ -1,0 +1,543 @@
+{
+  "data" : {
+    "model" : {
+      "authType" : {
+        "selectedType" : "USER_PWD"
+      },
+      "accessKeyIDAndSecretKey" : {
+        "usernameAndPassword" : {
+          "isHiddenPassword" : true,
+          "isHiddenSecondFactor" : false,
+          "username" : "some-access-key"
+        }
+      },
+      "credentialsAuth" : { },
+      "useSessionToken" : true,
+      "token" : "some-token",
+      "switchRole" : true,
+      "roleAccount" : "some-account",
+      "roleName" : "some-role",
+      "region" : "eu-central-1",
+      "timeout" : 12345
+    }
+  },
+  "schema" : {
+    "type" : "object",
+    "properties" : {
+      "model" : {
+        "type" : "object",
+        "properties" : {
+          "accessKeyIDAndSecretKey" : {
+            "type" : "object",
+            "properties" : {
+              "usernameAndPassword" : {
+                "type" : "object",
+                "properties" : {
+                  "password" : {
+                    "type" : "string",
+                    "default" : ""
+                  },
+                  "secondFactor" : {
+                    "type" : "string",
+                    "default" : ""
+                  },
+                  "username" : {
+                    "type" : "string",
+                    "default" : ""
+                  }
+                },
+                "title" : "Access Key ID and Secret Access Key",
+                "description" : "Authentication settings for AWS access key ID and secret access key.\nSelect \"Use credentials\" as authentication method to provide the\naccess key ID and secret via a credentials flow variable.\n",
+                "default" : {
+                  "isHiddenPassword" : false,
+                  "isHiddenSecondFactor" : false,
+                  "username" : ""
+                }
+              }
+            },
+            "default" : {
+              "usernameAndPassword" : {
+                "isHiddenPassword" : false,
+                "isHiddenSecondFactor" : false,
+                "username" : ""
+              }
+            }
+          },
+          "authType" : {
+            "type" : "object",
+            "properties" : {
+              "selectedType" : {
+                "oneOf" : [ {
+                  "const" : "NONE",
+                  "title" : "No authentication"
+                }, {
+                  "const" : "USER",
+                  "title" : "Username"
+                }, {
+                  "const" : "USER_PWD",
+                  "title" : "Username & password"
+                }, {
+                  "const" : "PWD",
+                  "title" : "Password"
+                }, {
+                  "const" : "CREDENTIALS",
+                  "title" : "Credentials"
+                }, {
+                  "const" : "KERBEROS",
+                  "title" : "Kerberos"
+                } ],
+                "title" : "Authentication",
+                "description" : "Method for authentication <br/><b>Use credentials</b><br/>Authenticate with Access Key ID and Secret Access Key stored in a credentials flow variable.<br/><b>Access Key ID and Secret Access Key</b><br/>Access Key ID and Secret Access Key based authentication.<br/><b>Default Credential Provider Chain</b><br/>Use the Default Credential Provider Chain for authentication.<br/><b>Anonymous Credentials</b><br/>Use anonymous credentials to make anonymous requests to an Amazon service<br/>",
+                "default" : "NONE"
+              }
+            },
+            "default" : {
+              "selectedType" : "NONE"
+            }
+          },
+          "credentialsAuth" : {
+            "type" : "object",
+            "properties" : {
+              "credentialsFlowVarName" : {
+                "type" : "string",
+                "title" : "Use credentials",
+                "description" : "Use credentials from a flow variable for authentication."
+              }
+            },
+            "default" : { }
+          },
+          "region" : {
+            "type" : "string",
+            "title" : "Region",
+            "description" : "The Amazon services geographical region.",
+            "default" : "us-east-1"
+          },
+          "roleAccount" : {
+            "type" : "string",
+            "title" : "Account",
+            "description" : "The 12-digit account ID for which the role should be assumed.",
+            "default" : ""
+          },
+          "roleName" : {
+            "type" : "string",
+            "title" : "Role",
+            "description" : "The name of the role that should be assumed.",
+            "default" : ""
+          },
+          "switchRole" : {
+            "type" : "boolean",
+            "title" : "Switch Role",
+            "description" : "Switch your IAM role. For more information see:\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role_console.html\">Switching to a Role</a>\n",
+            "default" : false
+          },
+          "timeout" : {
+            "type" : "integer",
+            "format" : "int32",
+            "title" : "Timeout",
+            "description" : "The timeout in milliseconds when initially establishing a connection.",
+            "default" : 30000
+          },
+          "token" : {
+            "type" : "string",
+            "title" : "Session Token",
+            "description" : "The session token for temporary credential authentication.",
+            "default" : ""
+          },
+          "useSessionToken" : {
+            "type" : "boolean",
+            "title" : "Use Session Token",
+            "description" : "Use a session token for temporary credential authentication.",
+            "default" : false
+          }
+        }
+      }
+    }
+  },
+  "ui_schema" : {
+    "elements" : [ {
+      "label" : "Authentication",
+      "type" : "Section",
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/authType/properties/selectedType",
+        "options" : {
+          "format" : "dropDown"
+        },
+        "providedOptions" : [ "possibleValues" ]
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/accessKeyIDAndSecretKey/properties/usernameAndPassword",
+        "options" : {
+          "passwordLabel" : "Secret access key",
+          "usernameLabel" : "Access key ID",
+          "format" : "credentials"
+        },
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "scope" : "#/properties/model/properties/authType/properties/selectedType",
+            "schema" : {
+              "oneOf" : [ {
+                "const" : "USER_PWD"
+              } ]
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/credentialsAuth/properties/credentialsFlowVarName",
+        "options" : {
+          "format" : "dropDown"
+        },
+        "providedOptions" : [ "possibleValues" ],
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "scope" : "#/properties/model/properties/authType/properties/selectedType",
+            "schema" : {
+              "oneOf" : [ {
+                "const" : "CREDENTIALS"
+              } ]
+            }
+          }
+        }
+      } ]
+    }, {
+      "label" : "Session Token",
+      "type" : "Section",
+      "rule" : {
+        "effect" : "SHOW",
+        "condition" : {
+          "scope" : "#/properties/model/properties/authType/properties/selectedType",
+          "schema" : {
+            "oneOf" : [ {
+              "const" : "USER_PWD"
+            }, {
+              "const" : "CREDENTIALS"
+            } ]
+          }
+        }
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/useSessionToken",
+        "options" : {
+          "format" : "checkbox"
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/token",
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "scope" : "#/properties/model/properties/useSessionToken",
+            "schema" : {
+              "const" : true
+            }
+          }
+        }
+      } ]
+    }, {
+      "label" : "Switch Role",
+      "type" : "Section",
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/switchRole",
+        "options" : {
+          "format" : "checkbox"
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/roleAccount",
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "scope" : "#/properties/model/properties/switchRole",
+            "schema" : {
+              "const" : true
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/roleName",
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "scope" : "#/properties/model/properties/switchRole",
+            "schema" : {
+              "const" : true
+            }
+          }
+        }
+      } ]
+    }, {
+      "label" : "Region",
+      "type" : "Section",
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/region",
+        "options" : {
+          "format" : "dropDown"
+        },
+        "providedOptions" : [ "possibleValues" ]
+      } ]
+    }, {
+      "label" : "Advanced",
+      "type" : "Section",
+      "options" : {
+        "isAdvanced" : true
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/timeout",
+        "options" : {
+          "stepSize" : 100.0,
+          "validation" : {
+            "max" : {
+              "errorMessage" : "The value must not exceed 2147483647.",
+              "parameters" : {
+                "isExclusive" : false,
+                "max" : 2.147483647E9
+              }
+            },
+            "min" : {
+              "errorMessage" : "The value must be at least 0.",
+              "parameters" : {
+                "isExclusive" : false,
+                "min" : 0.0
+              }
+            }
+          }
+        }
+      } ]
+    } ]
+  },
+  "persist" : {
+    "type" : "object",
+    "properties" : {
+      "model" : {
+        "type" : "object",
+        "properties" : {
+          "authType" : {
+            "type" : "object",
+            "properties" : {
+              "selectedType" : {
+                "configPaths" : [ [ "selectedType" ] ]
+              }
+            },
+            "propertiesRoute" : [ ".." ],
+            "route" : [ "auth" ]
+          },
+          "accessKeyIDAndSecretKey" : {
+            "type" : "object",
+            "properties" : {
+              "usernameAndPassword" : {
+                "configPaths" : [ [ "username" ] ]
+              }
+            },
+            "propertiesRoute" : [ ".." ],
+            "route" : [ "auth" ]
+          },
+          "credentialsAuth" : {
+            "type" : "object",
+            "properties" : {
+              "credentialsFlowVarName" : {
+                "configKey" : "credentials"
+              }
+            },
+            "propertiesRoute" : [ ".." ],
+            "route" : [ "auth" ]
+          },
+          "useSessionToken" : {
+            "configKey" : "useSessionToken"
+          },
+          "token" : {
+            "configKey" : "sessionToken"
+          },
+          "switchRole" : {
+            "configKey" : "switchRole"
+          },
+          "roleAccount" : {
+            "configKey" : "switchRoleAccount"
+          },
+          "roleName" : {
+            "configKey" : "switchRoleName"
+          },
+          "region" : {
+            "configKey" : "region"
+          },
+          "timeout" : {
+            "configKey" : "timeout"
+          }
+        }
+      }
+    }
+  },
+  "initialUpdates" : [ {
+    "scope" : "#/properties/model/properties/authType/properties/selectedType",
+    "providedOptionName" : "possibleValues",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : [ {
+        "id" : "CREDENTIALS",
+        "text" : "Use credentials"
+      }, {
+        "id" : "USER_PWD",
+        "text" : "Access Key ID and Secret Access Key"
+      }, {
+        "id" : "KERBEROS",
+        "text" : "Default Credential Provider Chain"
+      }, {
+        "id" : "NONE",
+        "text" : "Anonymous Credentials"
+      } ]
+    } ]
+  }, {
+    "scope" : "#/properties/model/properties/credentialsAuth/properties/credentialsFlowVarName",
+    "providedOptionName" : "possibleValues",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : [ ]
+    } ]
+  }, {
+    "scope" : "#/properties/model/properties/region",
+    "providedOptionName" : "possibleValues",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : [ {
+        "id" : "af-south-1",
+        "text" : "af-south-1"
+      }, {
+        "id" : "ap-east-1",
+        "text" : "ap-east-1"
+      }, {
+        "id" : "ap-northeast-1",
+        "text" : "ap-northeast-1"
+      }, {
+        "id" : "ap-northeast-2",
+        "text" : "ap-northeast-2"
+      }, {
+        "id" : "ap-northeast-3",
+        "text" : "ap-northeast-3"
+      }, {
+        "id" : "ap-south-1",
+        "text" : "ap-south-1"
+      }, {
+        "id" : "ap-south-2",
+        "text" : "ap-south-2"
+      }, {
+        "id" : "ap-southeast-1",
+        "text" : "ap-southeast-1"
+      }, {
+        "id" : "ap-southeast-2",
+        "text" : "ap-southeast-2"
+      }, {
+        "id" : "ap-southeast-3",
+        "text" : "ap-southeast-3"
+      }, {
+        "id" : "ap-southeast-4",
+        "text" : "ap-southeast-4"
+      }, {
+        "id" : "aws-cn-global",
+        "text" : "aws-cn-global"
+      }, {
+        "id" : "aws-global",
+        "text" : "aws-global"
+      }, {
+        "id" : "aws-iso-b-global",
+        "text" : "aws-iso-b-global"
+      }, {
+        "id" : "aws-iso-global",
+        "text" : "aws-iso-global"
+      }, {
+        "id" : "aws-us-gov-global",
+        "text" : "aws-us-gov-global"
+      }, {
+        "id" : "ca-central-1",
+        "text" : "ca-central-1"
+      }, {
+        "id" : "ca-west-1",
+        "text" : "ca-west-1"
+      }, {
+        "id" : "cn-north-1",
+        "text" : "cn-north-1"
+      }, {
+        "id" : "cn-northwest-1",
+        "text" : "cn-northwest-1"
+      }, {
+        "id" : "eu-central-1",
+        "text" : "eu-central-1"
+      }, {
+        "id" : "eu-central-2",
+        "text" : "eu-central-2"
+      }, {
+        "id" : "eu-isoe-west-1",
+        "text" : "eu-isoe-west-1"
+      }, {
+        "id" : "eu-north-1",
+        "text" : "eu-north-1"
+      }, {
+        "id" : "eu-south-1",
+        "text" : "eu-south-1"
+      }, {
+        "id" : "eu-south-2",
+        "text" : "eu-south-2"
+      }, {
+        "id" : "eu-west-1",
+        "text" : "eu-west-1"
+      }, {
+        "id" : "eu-west-2",
+        "text" : "eu-west-2"
+      }, {
+        "id" : "eu-west-3",
+        "text" : "eu-west-3"
+      }, {
+        "id" : "il-central-1",
+        "text" : "il-central-1"
+      }, {
+        "id" : "me-central-1",
+        "text" : "me-central-1"
+      }, {
+        "id" : "me-south-1",
+        "text" : "me-south-1"
+      }, {
+        "id" : "sa-east-1",
+        "text" : "sa-east-1"
+      }, {
+        "id" : "us-east-1",
+        "text" : "us-east-1"
+      }, {
+        "id" : "us-east-2",
+        "text" : "us-east-2"
+      }, {
+        "id" : "us-gov-east-1",
+        "text" : "us-gov-east-1"
+      }, {
+        "id" : "us-gov-west-1",
+        "text" : "us-gov-west-1"
+      }, {
+        "id" : "us-iso-east-1",
+        "text" : "us-iso-east-1"
+      }, {
+        "id" : "us-iso-west-1",
+        "text" : "us-iso-west-1"
+      }, {
+        "id" : "us-isob-east-1",
+        "text" : "us-isob-east-1"
+      }, {
+        "id" : "us-west-1",
+        "text" : "us-west-1"
+      }, {
+        "id" : "us-west-2",
+        "text" : "us-west-2"
+      } ]
+    } ]
+  } ],
+  "globalUpdates" : [ {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/authType/properties/selectedType"
+    },
+    "dependencies" : [ "#/properties/model/properties/accessKeyIDAndSecretKey/properties/usernameAndPassword", "#/properties/model/properties/authType/properties/selectedType" ]
+  } ]
+}
