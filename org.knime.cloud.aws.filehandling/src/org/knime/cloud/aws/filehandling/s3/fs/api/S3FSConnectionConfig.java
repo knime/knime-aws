@@ -60,6 +60,7 @@ import org.knime.filehandling.core.connections.FSCategory;
 import org.knime.filehandling.core.connections.FSLocationSpec;
 import org.knime.filehandling.core.connections.meta.FSConnectionConfig;
 import org.knime.filehandling.core.connections.meta.base.BaseFSConnectionConfig;
+import org.knime.node.parameters.widget.choices.Label;
 
 import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
@@ -298,14 +299,17 @@ public class S3FSConnectionConfig extends BaseFSConnectionConfig {
             /**
              * SSE-S3 mode
              */
+            @Label("S3-managed keys (SSE-S3)")
             S3("S3-Managed Keys (SSE-S3)", "SSE-S3", ServerSideEncryption.AES256),
             /**
              * SSE-KMS mode
              */
+            @Label("Keys in KMS (SSE-KMS)")
             KMS("Keys in KMS (SSE-KMS)", "SSE-KMS", ServerSideEncryption.AWS_KMS),
             /**
              * SSE-C mode
              */
+            @Label("Customer-provided encryption keys (SSE-C)")
             CUSTOMER_PROVIDED("Customer-provided encryption keys (SSE-C)", "SSE-C", null);
 
         private String m_title;
