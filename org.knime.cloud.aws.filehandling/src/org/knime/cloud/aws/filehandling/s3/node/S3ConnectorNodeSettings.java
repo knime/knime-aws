@@ -83,6 +83,7 @@ import org.knime.filehandling.core.defaultnodesettings.filtermode.SettingsModelF
 import org.knime.filehandling.core.defaultnodesettings.status.NodeModelStatusConsumer;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
+import org.knime.node.parameters.widget.choices.Label;
 
 /**
  * Settings model for S3Connector
@@ -109,27 +110,27 @@ class S3ConnectorNodeSettings {
 
     private static final String DEFAULT_CUSTOMER_KEY_VAR = "";
 
-    private static final String KEY_SOCKET_TIMEOUTS = "readWriteTimeoutInSeconds";
+    static final String KEY_SOCKET_TIMEOUTS = "readWriteTimeoutInSeconds";
 
-    private static final String KEY_NORMALIZE_PATHS = "normalizePaths";
+    static final String KEY_NORMALIZE_PATHS = "normalizePaths";
 
-    private static final String KEY_WORKING_DIRECTORY = "workingDirectory";
+    static final String KEY_WORKING_DIRECTORY = "workingDirectory";
 
-    private static final String KEY_SSE_ENABLED = "sseEnabled";
+    static final String KEY_SSE_ENABLED = "sseEnabled";
 
-    private static final String KEY_SSE_MODE = "sseMode";
+    static final String KEY_SSE_MODE = "sseMode";
 
-    private static final String KEY_SSE_KMS_USE_AWS_MANAGED = "sseKmsUseAwsManaged";
+    static final String KEY_SSE_KMS_USE_AWS_MANAGED = "sseKmsUseAwsManaged";
 
-    private static final String KEY_SSE_KMS_KEY_ID = "sseKmsKeyId";
+    static final String KEY_SSE_KMS_KEY_ID = "sseKmsKeyId";
 
-    private static final String KEY_SSE_CUSTOMER_KEY_SOURCE = "sseCustomerKeySource";
+    static final String KEY_SSE_CUSTOMER_KEY_SOURCE = "sseCustomerKeySource";
 
-    private static final String KEY_SSE_CUSTOMER_KEY = "sseCustomerKey";
+    static final String KEY_SSE_CUSTOMER_KEY = "sseCustomerKey";
 
-    private static final String KEY_SSE_CUSTOMER_KEY_VAR = "sseCustomerKeyVar";
+    static final String KEY_SSE_CUSTOMER_KEY_VAR = "sseCustomerKeyVar";
 
-    private static final String KEY_SSE_CUSTOMER_KEY_FILE = "sseCustomerKeyFile";
+    static final String KEY_SSE_CUSTOMER_KEY_FILE = "sseCustomerKeyFile";
 
     private final SettingsModelIntegerBounded m_socketTimeout;
 
@@ -616,14 +617,17 @@ class S3ConnectorNodeSettings {
             /**
              * Key in stored in node settings.
              */
+            @Label("Enter key (base64 encoded)")
             SETTINGS("Enter key (base64 encoded)", "settings"),
             /**
              * Key is stored in the credential flow variable.
              */
+            @Label("Credential flow variable (base64 encoded)")
             CREDENTIAL_VAR("Credential flow variable (base64 encoded)", "credential"),
             /**
              * Key is stored in file.
              */
+            @Label("Key file")
             FILE("Key file", "file");
 
         private String m_title;
