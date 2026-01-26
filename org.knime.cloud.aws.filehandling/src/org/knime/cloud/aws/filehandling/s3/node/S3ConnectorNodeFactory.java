@@ -48,20 +48,39 @@
  */
 package org.knime.cloud.aws.filehandling.s3.node;
 
+import static org.knime.node.impl.description.PortDescription.dynamicPort;
+import static org.knime.node.impl.description.PortDescription.fixedPort;
+
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.knime.cloud.aws.util.AmazonConnectionInformationPortObject;
 import org.knime.core.node.ConfigurableNodeFactory;
+import org.knime.core.node.NodeDescription;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeView;
 import org.knime.core.node.context.NodeCreationConfiguration;
+import org.knime.core.webui.node.dialog.NodeDialog;
+import org.knime.core.webui.node.dialog.NodeDialogFactory;
+import org.knime.core.webui.node.dialog.NodeDialogManager;
+import org.knime.core.webui.node.dialog.SettingsType;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultKaiNodeInterface;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeDialog;
+import org.knime.core.webui.node.dialog.kai.KaiNodeInterface;
+import org.knime.core.webui.node.dialog.kai.KaiNodeInterfaceFactory;
 import org.knime.filehandling.core.port.FileSystemPortObject;
+import org.knime.node.impl.description.DefaultNodeDescriptionUtil;
+import org.knime.node.impl.description.PortDescription;
 
 /**
  *
  * @author Mareike Hoeger, KNIME GmbH, Konstanz, Germany
+ * @author Bernd Wiswedel, KNIME GmbH, Konstanz, Germany
+ * @author AI Migration Pipeline v1.2
  */
-public class S3ConnectorNodeFactory extends ConfigurableNodeFactory<S3ConnectorNodeModel> {
+@SuppressWarnings("restriction")
+public class S3ConnectorNodeFactory extends ConfigurableNodeFactory<S3ConnectorNodeModel> implements NodeDialogFactory, KaiNodeInterfaceFactory {
 
     /**
      * File System Connection port name.
@@ -112,9 +131,72 @@ public class S3ConnectorNodeFactory extends ConfigurableNodeFactory<S3ConnectorN
     /**
      * {@inheritDoc}
      */
+    private static final String NODE_NAME = "Amazon S3 Connector";
+    private static final String NODE_ICON = "../../s3/node/file_system_connector.png";
+    private static final String SHORT_DESCRIPTION = """
+            Provides a file system connection to Amazon S3.
+            """;
+    private static final String FULL_DESCRIPTION = """
+            <p> This node configures the connection information that will be used to connect to Amazon S3. Using
+                this connection the other KNIME remote file handling nodes such as Excel Reader and Excel Writer can
+                download and upload files from and to Amazon S3. </p> <p> For further documentation please take a look
+                at the <a href="http://docs.aws.amazon.com/AmazonS3/latest/gsg/GetStartedWithS3.html">AWS
+                Documentation</a>. </p> <p><b>Path syntax:</b> Paths for Amazon S3 are specified with a UNIX-like
+                syntax, /mybucket/myfolder/myfile. An absolute for S3 consists of: <ol> <li>A leading slash ("/").</li>
+                <li>Followed by the name of a bucket ("mybucket" in the above example), followed by a slash.</li>
+                <li>Followed by the name of an object within the bucket ("myfolder/myfile" in the above example).</li>
+                </ol> </p> <p><b>URI formats:</b> When you apply the <i>Path to URI</i> node to paths coming from this
+                connector, you can create URIs with the following formats: <ol> <li><b>Presigned https:// URLs</b> which
+                contain credentials, that allow to access files for a certain amount of time (see <a
+                href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html">AWS
+                documentation</a>).</li> <li><b>s3:// URLs</b> to access Amazon S3 with the <tt>aws</tt> command line
+                interface, or inside Hadoop environments.</li> </ol> </p>
+            """;
+    private static final List<PortDescription> INPUT_PORTS = List.of(
+            dynamicPort("File System Connection", "File System Connection", """
+                A file system connection to read/write the customer key, when <b>SSE-C</b> encryption mode is enabled.
+                """),
+            fixedPort("Connection information port", """
+                Port object containing the AWS connection information.
+                """)
+    );
+    private static final List<PortDescription> OUTPUT_PORTS = List.of(
+            fixedPort("S3 File System Connection", """
+                S3 File System Connection.
+                """)
+    );
+
     @Override
-    protected NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
-        return new S3ConnectorNodeDialog(creationConfig.getPortConfig().orElseThrow(IllegalStateException::new));
+    public NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
+        return NodeDialogManager.createLegacyFlowVariableNodeDialog(createNodeDialog());
+    }
+
+    @Override
+    public NodeDialog createNodeDialog() {
+        return new DefaultNodeDialog(SettingsType.MODEL, S3ConnectorNodeParameters.class);
+    }
+
+    @Override
+    public NodeDescription createNodeDescription() {
+        return DefaultNodeDescriptionUtil.createNodeDescription( //
+            NODE_NAME, //
+            NODE_ICON, //
+            INPUT_PORTS, //
+            OUTPUT_PORTS, //
+            SHORT_DESCRIPTION, //
+            FULL_DESCRIPTION, //
+            List.of(), //
+            S3ConnectorNodeParameters.class, //
+            null, //
+            NodeType.Source, //
+            List.of(), //
+            null //
+        );
+    }
+
+    @Override
+    public KaiNodeInterface createKaiNodeInterface() {
+        return new DefaultKaiNodeInterface(Map.of(SettingsType.MODEL, S3ConnectorNodeParameters.class));
     }
 
 }
