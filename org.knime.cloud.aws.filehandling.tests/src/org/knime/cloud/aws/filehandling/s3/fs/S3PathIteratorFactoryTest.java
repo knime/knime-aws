@@ -48,9 +48,9 @@
  */
 package org.knime.cloud.aws.filehandling.s3.fs;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -60,8 +60,8 @@ import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Path;
 import java.util.Iterator;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.knime.cloud.aws.filehandling.s3.MultiRegionS3Client;
 
 import software.amazon.awssdk.services.s3.model.Bucket;
@@ -82,7 +82,7 @@ public class S3PathIteratorFactoryTest {
 
     private MultiRegionS3Client m_client;
 
-    @Before
+    @BeforeEach
     public void beforeTestCase() {
         m_fs = mock(S3FileSystem.class);
         when(m_fs.getSeparator()).thenReturn(S3FileSystem.PATH_SEPARATOR);

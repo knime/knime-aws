@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://www.knime.org/2008/09/XMLConfig" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.knime.org/2008/09/XMLConfig http://www.knime.org/XMLConfig_2008_09.xsd" key="test">
+    <entry key="workingDirectory" type="xstring" value="/s3-permissions-test-knime2/"/>
+    <entry key="normalizePaths" type="xboolean" value="true"/>
+    <entry key="readWriteTimeoutInSeconds" type="xint" value="20"/>
+    <entry key="sseEnabled" type="xboolean" value="true"/>
+    <entry key="sseMode" type="xstring" value="SSE-KMS"/>
+    <entry key="sseKmsUseAwsManaged" type="xboolean" value="false"/>
+    <entry key="sseKmsKeyId" type="xstring" value="c7cd43e0-b031-41c0-90e0-847905d03d25"/>
+    <entry key="sseCustomerKeySource" type="xstring" value="file"/>
+    <entry key="sseCustomerKey" type="xstring" value=""/>
+    <entry key="sseCustomerKeyVar" type="xstring" value=""/>
+    <config key="sseCustomerKeyFile">
+        <config key="path">
+            <entry key="location_present" type="xboolean" value="true"/>
+            <entry key="file_system_type" type="xstring" value="CONNECTED"/>
+            <entry key="file_system_specifier" type="xstring" value="ssh:172.17.21.133"/>
+            <entry key="path" type="xstring" value="/home/knime/bernd/sse-c.key"/>
+        </config>
+        <config key="filter_mode">
+            <entry key="filter_mode" type="xstring" value="FILE"/>
+            <entry key="include_subfolders" type="xboolean" value="false"/>
+            <config key="filter_options">
+                <entry key="filter_files_extension" type="xboolean" value="false"/>
+                <entry key="files_extension_expression" type="xstring" value=""/>
+                <entry key="files_extension_case_sensitive" type="xboolean" value="false"/>
+                <entry key="filter_files_name" type="xboolean" value="false"/>
+                <entry key="files_name_expression" type="xstring" value="*"/>
+                <entry key="files_name_case_sensitive" type="xboolean" value="false"/>
+                <entry key="files_name_filter_type" type="xstring" value="WILDCARD"/>
+                <entry key="include_hidden_files" type="xboolean" value="false"/>
+                <entry key="include_special_files" type="xboolean" value="true"/>
+                <entry key="filter_folders_name" type="xboolean" value="false"/>
+                <entry key="folders_name_expression" type="xstring" value="*"/>
+                <entry key="folders_name_case_sensitive" type="xboolean" value="false"/>
+                <entry key="folders_name_filter_type" type="xstring" value="WILDCARD"/>
+                <entry key="include_hidden_folders" type="xboolean" value="false"/>
+                <entry key="follow_links" type="xboolean" value="true"/>
+            </config>
+        </config>
+        <config key="file_system_chooser__Internals">
+            <entry key="has_fs_port" type="xboolean" value="false"/>
+            <entry key="overwritten_by_variable" type="xboolean" value="false"/>
+            <entry key="convenience_fs_category" type="xstring" value="RELATIVE"/>
+            <entry key="relative_to" type="xstring" value="knime.workflow"/>
+            <entry key="mountpoint" type="xstring" value="LOCAL"/>
+            <entry key="spaceId" type="xstring" value=""/>
+            <entry key="spaceName" type="xstring" value=""/>
+            <entry key="custom_url_timeout" type="xint" value="1000"/>
+            <entry key="connected_fs" type="xboolean" value="true"/>
+        </config>
+    </config>
+</config>
