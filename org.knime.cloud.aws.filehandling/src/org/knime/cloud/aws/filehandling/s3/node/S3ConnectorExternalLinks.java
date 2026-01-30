@@ -1,5 +1,6 @@
 /*
  * ------------------------------------------------------------------------
+ *
  *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
@@ -40,19 +41,43 @@
  *  propagated with or for interoperation with KNIME.  The owner of a Node
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
- * ---------------------------------------------------------------------
- *
- * History
- *   20.11.2010 (meinl): created
+ * ------------------------------------------------------------------------
  */
-package org.knime.cloud.aws.filehandling.s3.fs;
 
-import org.knime.testing.core.AbstractTestcaseCollector;
+package org.knime.cloud.aws.filehandling.s3.node;
 
 /**
+ * External links used in S3 Connector node descriptions and help text.
+ * Make sure to escape the ampersand in URLs when used in HTML contexts.
  *
- * @author Thorsten Meinl, University of Konstanz
+ * @author KNIME GmbH, Konstanz, Germany
  */
-public class S3TestcaseCollector extends AbstractTestcaseCollector {
-    // yes, it is empty
+final class S3ConnectorExternalLinks {
+
+    private S3ConnectorExternalLinks() {
+        // utility class
+    }
+
+    /** AWS Java SDK documentation for ClientConfiguration socket timeout. */
+    static final String AWS_SDK_SOCKET_TIMEOUT_DOC =
+        "https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/"
+            + "ClientConfiguration.html#setSocketTimeout-int-";
+
+    /** AWS documentation for S3 Server-side encryption. */
+    static final String AWS_S3_SERVER_SIDE_ENCRYPTION_DOC =
+        "https://docs.aws.amazon.com/AmazonS3/latest/dev/serv-side-encryption.html";
+
+    // Widget descriptions with embedded links (for use in @Widget annotations)
+
+    static final String SOCKET_TIMEOUT_DESCRIPTION =
+            "The socket read/write timeout. For further details see the <a href=\"" //
+            + AWS_SDK_SOCKET_TIMEOUT_DOC //
+            + "\">AWS documentation</a>.";
+
+    static final String SSE_ENABLED_DESCRIPTION =
+            "If selected, all data written to S3 will be encrypted with <a href=\"" //
+            + AWS_S3_SERVER_SIDE_ENCRYPTION_DOC //
+            + "\">Server-side encryption (SSE)</a>" //
+            + " using SSE-S3, SSE-KMS or SSE-C."; //
+
 }
