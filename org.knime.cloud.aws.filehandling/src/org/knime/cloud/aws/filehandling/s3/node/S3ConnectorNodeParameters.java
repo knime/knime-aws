@@ -133,17 +133,17 @@ final class S3ConnectorNodeParameters implements NodeParameters {
 
     private static final NodeLogger LOGGER = NodeLogger.getLogger(S3ConnectorNodeParameters.class);
 
-    @Section(title = "File system settings")
+    @Section(title = "File System Settings")
     interface FileSystemSettings {
     }
 
-    @Section(title = "Connection settings")
+    @Section(title = "Connection Settings")
     @After(FileSystemSettings.class)
     @Advanced
     interface ConnectionSettings {
     }
 
-    @Section(title = "Server-side encryption (SSE)")
+    @Section(title = "Server-Side Encryption (SSE)")
     @After(ConnectionSettings.class)
     @Advanced
     interface ServerSideEncryption {
@@ -482,7 +482,7 @@ final class S3ConnectorNodeParameters implements NodeParameters {
 
     @Widget(title = "Read/write timeout in seconds", description = S3ConnectorExternalLinks.SOCKET_TIMEOUT_DESCRIPTION,
         advanced = true)
-    @NumberInputWidget(minValidation = IsNonNegativeValidation.class)
+    @NumberInputWidget(minValidation = IsNonNegativeValidation.class, stepSize = 10)
     @Persist(configKey = S3ConnectorNodeSettings.KEY_SOCKET_TIMEOUTS)
     @ValueReference(SocketTimeoutRef.class)
     @Layout(ConnectionSettings.class)

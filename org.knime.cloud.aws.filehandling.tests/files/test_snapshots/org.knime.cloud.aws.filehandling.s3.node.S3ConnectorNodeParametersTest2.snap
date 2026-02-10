@@ -186,7 +186,7 @@
       },
       "providedOptions" : [ "message" ]
     }, {
-      "label" : "File system settings",
+      "label" : "File System Settings",
       "type" : "Section",
       "elements" : [ {
         "type" : "Control",
@@ -205,7 +205,7 @@
         }
       } ]
     }, {
-      "label" : "Connection settings",
+      "label" : "Connection Settings",
       "type" : "Section",
       "options" : {
         "isAdvanced" : true
@@ -214,6 +214,7 @@
         "type" : "Control",
         "scope" : "#/properties/model/properties/socketTimeout",
         "options" : {
+          "stepSize" : 10.0,
           "validation" : {
             "max" : {
               "errorMessage" : "The value must not exceed 2147483647.",
@@ -234,7 +235,7 @@
         }
       } ]
     }, {
-      "label" : "Server-side encryption (SSE)",
+      "label" : "Server-Side Encryption (SSE)",
       "type" : "Section",
       "options" : {
         "isAdvanced" : true
