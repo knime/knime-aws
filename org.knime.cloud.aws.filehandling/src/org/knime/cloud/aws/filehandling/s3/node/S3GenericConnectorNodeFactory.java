@@ -48,19 +48,40 @@
  */
 package org.knime.cloud.aws.filehandling.s3.node;
 
+import static org.knime.node.impl.description.PortDescription.dynamicPort;
+import static org.knime.node.impl.description.PortDescription.fixedPort;
+
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.knime.core.node.ConfigurableNodeFactory;
+import org.knime.core.node.NodeDescription;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeView;
 import org.knime.core.node.context.NodeCreationConfiguration;
+import org.knime.core.webui.node.dialog.NodeDialog;
+import org.knime.core.webui.node.dialog.NodeDialogFactory;
+import org.knime.core.webui.node.dialog.NodeDialogManager;
+import org.knime.core.webui.node.dialog.SettingsType;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultKaiNodeInterface;
+import org.knime.core.webui.node.dialog.defaultdialog.DefaultNodeDialog;
+import org.knime.core.webui.node.dialog.kai.KaiNodeInterface;
+import org.knime.core.webui.node.dialog.kai.KaiNodeInterfaceFactory;
 import org.knime.filehandling.core.port.FileSystemPortObject;
+import org.knime.node.impl.description.DefaultNodeDescriptionUtil;
+import org.knime.node.impl.description.PortDescription;
 
 /**
+ * Node Factory for the S3 Generic Connector node.
  *
  * @author Mareike Hoeger, KNIME GmbH, Konstanz, Germany
+ * @author Magnus Gohm, KNIME GmbH, Konstanz, Germany
+ * @author AI Migration Pipeline v1.2
  */
-public class S3GenericConnectorNodeFactory extends ConfigurableNodeFactory<S3GenericConnectorNodeModel> {
+@SuppressWarnings("restriction")
+public class S3GenericConnectorNodeFactory extends ConfigurableNodeFactory<S3GenericConnectorNodeModel>
+    implements NodeDialogFactory, KaiNodeInterfaceFactory {
 
     /**
      * File System Connection port name.
@@ -75,44 +96,94 @@ public class S3GenericConnectorNodeFactory extends ConfigurableNodeFactory<S3Gen
         return Optional.of(builder);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected S3GenericConnectorNodeModel createNodeModel(final NodeCreationConfiguration creationConfig) {
         return new S3GenericConnectorNodeModel(creationConfig.getPortConfig().orElseThrow(IllegalStateException::new));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected int getNrNodeViews() {
         return 0;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public NodeView<S3GenericConnectorNodeModel> createNodeView(final int viewIndex, final S3GenericConnectorNodeModel nodeModel) {
+    public NodeView<S3GenericConnectorNodeModel> createNodeView(
+        final int viewIndex, final S3GenericConnectorNodeModel nodeModel) {
         return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected boolean hasDialog() {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    private static final String NODE_NAME = "Generic S3 Connector";
+
+    private static final String NODE_ICON = "../../s3/node/file_system_connector.png";
+
+    private static final String SHORT_DESCRIPTION = """
+            Provides a file system connection to an S3-compatible endpoint.
+            """;
+    private static final String FULL_DESCRIPTION = """
+            <p> This node connects to services that provide an S3-compatible API endpoint, for example <a
+                href="https://min.io/">MinIO</a>. The resulting output port allows downstream nodes to access the data
+                behind the endpoint as a file system, e.g. to read or write files and folders, or to perform other file
+                system operations (browse/list files, copy, move, ...). If you want to connect to Amazon S3 on AWS,
+                please use the Amazon S3 Connector node instead. </p> <p><b>Path syntax:</b> Paths for this file system
+                are specified with a UNIX-like syntax, /mybucket/myfolder/myfile. An absolute consists of: <ol> <li>A
+                leading slash ("/").</li> <li>Followed by the name of a bucket ("mybucket" in the above example),
+                followed by a slash.</li> <li>Followed by the name of an object within the bucket ("myfolder/myfile" in
+                the above example).</li> </ol> </p> <p><b>URI formats:</b> When you apply the <i>Path to URI</i> node to
+                paths coming from this connector, you can create URIs with the following formats: <ol> <li> <b>Presigned
+                https:// URLs</b> which contain credentials, that allow to access files for a certain amount of time
+                (see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html">AWS
+                documentation</a>). </li> <li> <b>s3:// URLs</b> to access the S3-compatible endpoint with the
+                <tt>aws</tt> command line interface, or from inside Hadoop environments. </li> </ol> </p>
+            """;
+
+    private static final List<PortDescription> INPUT_PORTS = List.of(
+            dynamicPort(FILE_SYSTEM_CONNECTION_PORT_NAME, FILE_SYSTEM_CONNECTION_PORT_NAME, """
+                A file system connection to read the customer key, when <b>SSE-C</b> encryption mode is enabled.
+                """)
+    );
+
+    private static final List<PortDescription> OUTPUT_PORTS = List.of(
+            fixedPort("Generic S3 File System Connection", """
+                Generic S3 File System Connection
+                """)
+    );
+
     @Override
-    protected NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
-        return new S3GenericConnectorNodeDialog(creationConfig.getPortConfig().orElseThrow(IllegalStateException::new));
+    public NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
+        return NodeDialogManager.createLegacyFlowVariableNodeDialog(createNodeDialog());
+    }
+
+    @Override
+    public NodeDialog createNodeDialog() {
+        return new DefaultNodeDialog(SettingsType.MODEL, S3GenericConnectorNodeParameters.class);
+    }
+
+    @Override
+    public NodeDescription createNodeDescription() {
+        return DefaultNodeDescriptionUtil.createNodeDescription( //
+            NODE_NAME, //
+            NODE_ICON, //
+            INPUT_PORTS, //
+            OUTPUT_PORTS, //
+            SHORT_DESCRIPTION, //
+            FULL_DESCRIPTION, //
+            List.of(), //
+            S3GenericConnectorNodeParameters.class, //
+            null, //
+            NodeType.Source, //
+            List.of(), //
+            null //
+        );
+    }
+
+    @Override
+    public KaiNodeInterface createKaiNodeInterface() {
+        return new DefaultKaiNodeInterface(Map.of(SettingsType.MODEL, S3GenericConnectorNodeParameters.class));
     }
 
 }

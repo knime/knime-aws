@@ -82,6 +82,7 @@ import org.knime.core.webui.node.dialog.defaultdialog.internal.file.SingleFileSe
 import org.knime.core.webui.node.dialog.defaultdialog.internal.file.WithCustomFileSystem;
 import org.knime.core.webui.node.dialog.defaultdialog.internal.widget.PersistWithin;
 import org.knime.core.webui.node.dialog.defaultdialog.util.updates.StateComputationFailureException;
+import org.knime.core.webui.node.dialog.defaultdialog.widget.Modification;
 import org.knime.node.parameters.Advanced;
 import org.knime.node.parameters.NodeParameters;
 import org.knime.node.parameters.NodeParametersInput;
@@ -129,7 +130,7 @@ import software.amazon.awssdk.services.kms.model.KeyListEntry;
  */
 @LoadDefaultsForAbsentFields
 @SuppressWarnings("restriction")
-final class S3ConnectorNodeParameters implements NodeParameters {
+class S3ConnectorNodeParameters implements NodeParameters {
 
     private static final NodeLogger LOGGER = NodeLogger.getLogger(S3ConnectorNodeParameters.class);
 
@@ -160,7 +161,11 @@ final class S3ConnectorNodeParameters implements NodeParameters {
      * Only visible when there's an error message to show.
      */
     @TextMessage(S3InfoMessageProvider.class)
+    @Modification.WidgetReference(InfoMessageRef.class)
     Void m_infoMessage;
+
+    interface InfoMessageRef extends Modification.Reference {
+    }
 
     /**
      * Intermediate state provider that extracts the CloudConnectionInformation from the input port.
