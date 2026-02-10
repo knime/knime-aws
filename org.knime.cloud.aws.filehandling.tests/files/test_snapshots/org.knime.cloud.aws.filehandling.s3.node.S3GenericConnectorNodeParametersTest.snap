@@ -1,0 +1,765 @@
+{
+  "data" : {
+    "model" : {
+      "workingDirectory" : "/",
+      "normalizePaths" : true,
+      "socketTimeout" : 30,
+      "sseEnabled" : false,
+      "sseMode" : "S3",
+      "kmsKeySettings" : {
+        "useAwsManagedKey" : true,
+        "kmsKeyId" : ""
+      },
+      "customerKeySettings" : {
+        "customerKeySource" : "SETTINGS",
+        "customerKey" : "",
+        "customerKeyVar" : "",
+        "customerKeyFile" : {
+          "path" : {
+            "fsCategory" : "LOCAL",
+            "path" : "",
+            "timeout" : 10000,
+            "context" : {
+              "fsToString" : "(LOCAL, )"
+            }
+          }
+        }
+      },
+      "endpointUrl" : "",
+      "pathStyle" : true,
+      "region" : "",
+      "authParameters" : {
+        "type" : "ACCESS_KEY",
+        "credentials" : {
+          "credentials" : {
+            "isHiddenPassword" : false,
+            "isHiddenSecondFactor" : false,
+            "username" : "magnus"
+          }
+        }
+      },
+      "connectionTimeout" : 30
+    }
+  },
+  "schema" : {
+    "type" : "object",
+    "properties" : {
+      "model" : {
+        "type" : "object",
+        "properties" : {
+          "authParameters" : {
+            "type" : "object",
+            "properties" : {
+              "credentials" : {
+                "type" : "object",
+                "properties" : {
+                  "credentials" : {
+                    "type" : "object",
+                    "properties" : {
+                      "password" : {
+                        "type" : "string",
+                        "default" : ""
+                      },
+                      "secondFactor" : {
+                        "type" : "string",
+                        "default" : ""
+                      },
+                      "username" : {
+                        "type" : "string",
+                        "default" : ""
+                      }
+                    },
+                    "default" : {
+                      "isHiddenPassword" : false,
+                      "isHiddenSecondFactor" : false,
+                      "username" : ""
+                    }
+                  },
+                  "flowVarName" : {
+                    "type" : "string"
+                  }
+                },
+                "title" : "Access key ID & secret key",
+                "description" : "Provide the access key ID and secret key to authenticate against the S3-compatible endpoint.\nThe credentials will be stored in weakly encrypted form as part of the node settings.\n(Use credentials flow variables to prevent this.)\n",
+                "default" : {
+                  "credentials" : {
+                    "isHiddenPassword" : false,
+                    "isHiddenSecondFactor" : false,
+                    "username" : "magnus"
+                  }
+                }
+              },
+              "type" : {
+                "oneOf" : [ {
+                  "const" : "ACCESS_KEY",
+                  "title" : "Access key ID and secret key"
+                }, {
+                  "const" : "ANONYMOUS",
+                  "title" : "Anonymous"
+                }, {
+                  "const" : "DEFAULT_PROVIDER_CHAIN",
+                  "title" : "Default credential provider chain"
+                } ],
+                "title" : "Authentication method",
+                "description" : "Method of authentication to use.\n<ul>\n<li><b>Access key ID and secret key</b>: Use an access key ID and secret to authenticate. Check <i>Use credentials</i> to select a\ncredentials flow variable to supply the ID and secret.\n</li>\n<li><b>Anonymous</b>: Use anonymous credentials to make anonymous requests to the S3-compatible endpoint.\n</li>\n<li><b>Default credential provider chain</b>: Supply credentials using environment variables or a credentials configuration file. For further\ndetails see the <a href=\"https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/\ncredentials.html#credentials-chain\">AWS documentation</a>.\n</li>\n</ul>",
+                "default" : "ACCESS_KEY"
+              }
+            },
+            "default" : {
+              "type" : "ACCESS_KEY",
+              "credentials" : {
+                "credentials" : {
+                  "isHiddenPassword" : false,
+                  "isHiddenSecondFactor" : false,
+                  "username" : "magnus"
+                }
+              }
+            }
+          },
+          "connectionTimeout" : {
+            "type" : "integer",
+            "format" : "int32",
+            "title" : "Connection timeout in seconds",
+            "description" : "The amount of time to wait when initially establishing a connection before giving up and timing out. For\nfurther details see the <a href=\"https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/\nClientConfiguration.html#setConnectionTimeout-int-\">AWS documentation</a>.\n",
+            "default" : 30
+          },
+          "customerKeySettings" : {
+            "type" : "object",
+            "properties" : {
+              "customerKey" : {
+                "type" : "string",
+                "title" : "Key",
+                "description" : "Enter the base64 encoded encryption key.",
+                "default" : ""
+              },
+              "customerKeyFile" : {
+                "type" : "object",
+                "properties" : {
+                  "path" : {
+                    "type" : "object",
+                    "default" : {
+                      "fsCategory" : "LOCAL",
+                      "path" : "",
+                      "timeout" : 10000,
+                      "context" : {
+                        "fsToString" : "(LOCAL, )"
+                      }
+                    }
+                  }
+                },
+                "title" : "File",
+                "description" : "Select a file containing exactly 32 bytes (256 bit) to use as the encryption key.",
+                "default" : {
+                  "path" : {
+                    "fsCategory" : "LOCAL",
+                    "path" : "",
+                    "timeout" : 10000,
+                    "context" : {
+                      "fsToString" : "(LOCAL, )"
+                    }
+                  }
+                }
+              },
+              "customerKeySource" : {
+                "oneOf" : [ {
+                  "const" : "SETTINGS",
+                  "title" : "Enter key (base64 encoded)"
+                }, {
+                  "const" : "CREDENTIAL_VAR",
+                  "title" : "Credential flow variable (base64 encoded)"
+                }, {
+                  "const" : "FILE",
+                  "title" : "Key file"
+                } ],
+                "title" : "Customer-provided key",
+                "description" : "If SSE-C is selected as the SSE method it is necessary to provide an encryption key. There are multiple\nways the key could be provided. The base64 encoded key could be entered directly or provided via\ncredentials variable using the encoded key as password (username can be anything or left empty). The\nthird way is to select a file that contains exactly 32 bytes (256 bit) that should be used as key.\n",
+                "default" : "SETTINGS"
+              },
+              "customerKeyVar" : {
+                "type" : "string",
+                "title" : "Credential",
+                "description" : "Select the credential flow variable containing the base64 encoded key.",
+                "default" : ""
+              }
+            },
+            "default" : {
+              "customerKeySource" : "SETTINGS",
+              "customerKey" : "",
+              "customerKeyVar" : "",
+              "customerKeyFile" : {
+                "path" : {
+                  "fsCategory" : "LOCAL",
+                  "path" : "",
+                  "timeout" : 10000,
+                  "context" : {
+                    "fsToString" : "(LOCAL, )"
+                  }
+                }
+              }
+            }
+          },
+          "endpointUrl" : {
+            "type" : "string",
+            "title" : "Endpoint",
+            "description" : "<tt>http(s)</tt> URL of the S3-compatible service endpoint.",
+            "default" : ""
+          },
+          "infoMessage" : {
+            "type" : "object"
+          },
+          "kmsKeySettings" : {
+            "type" : "object",
+            "properties" : {
+              "kmsKeyId" : {
+                "type" : "string",
+                "title" : "KMS key id",
+                "description" : "If SSE-KMS is selected as the SSE method and the default AWS managed CMK should <b>not</b> be used,\nthen this option allows to choose the KMS key with which to encrypt data written to S3. The suggestions\ndropdown fetches the list of available keys (requires permissions <tt>kms:ListKeys</tt>,\n<tt>kms:DescribeKey</tt> and optionally <tt>kms:ListAliases</tt>).\n",
+                "default" : ""
+              },
+              "useAwsManagedKey" : {
+                "type" : "boolean",
+                "title" : "Use default AWS managed key",
+                "description" : "If SSE-KMS is selected as the SSE method, then this option specifies whether or not to encrypt data\nwith the default AWS managed CMK.\n",
+                "default" : true
+              }
+            },
+            "default" : {
+              "useAwsManagedKey" : true,
+              "kmsKeyId" : ""
+            }
+          },
+          "normalizePaths" : {
+            "type" : "boolean",
+            "title" : "Normalize paths",
+            "description" : "Determines if the path normalization should be applied. Path normalization eliminates redundant\ncomponents of a path like, e.g. <tt>'/a/../b/./c'</tt> can be normalized to <tt>'/b/c'</tt>. When these\nredundant components like <tt>'../'</tt> or <tt>'.'</tt> are part of an existing object, then\nnormalization must be deactivated in order to access them properly.\n",
+            "default" : true
+          },
+          "pathStyle" : {
+            "type" : "boolean",
+            "title" : "Use path-style requests",
+            "description" : "If chosen, buckets will be accessed by appending their name to the path of the endpoint URL. Otherwise, they\nwill be accessed by prepending their name as a subdomain in the URL hostname. The correct choice depends on\nhow your S3-compatible endpoint is set up, but in most cases you will want to use path-style requests. For\nfurther explanation see the\n<a href=\"https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html\">AWS documentation</a>.\n",
+            "default" : true
+          },
+          "region" : {
+            "type" : "string",
+            "title" : "Region",
+            "description" : "Optional region to set on the client. Might be empty, depending on how your S3-compatible endpoint is\nset up.\n",
+            "default" : ""
+          },
+          "socketTimeout" : {
+            "type" : "integer",
+            "format" : "int32",
+            "title" : "Read/write timeout in seconds",
+            "description" : "The socket read/write timeout. For further details see the <a href=\"https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/ClientConfiguration.html#setSocketTimeout-int-\">AWS documentation</a>.",
+            "default" : 30
+          },
+          "sseEnabled" : {
+            "type" : "boolean",
+            "title" : "Enable server-side encryption (SSE)",
+            "description" : "If selected, all data written to S3 will be encrypted with <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/serv-side-encryption.html\">Server-side encryption (SSE)</a> using SSE-S3, SSE-KMS or SSE-C.",
+            "default" : false
+          },
+          "sseMode" : {
+            "oneOf" : [ {
+              "const" : "S3",
+              "title" : "S3-managed keys (SSE-S3)"
+            }, {
+              "const" : "KMS",
+              "title" : "Keys in KMS (SSE-KMS)"
+            }, {
+              "const" : "CUSTOMER_PROVIDED",
+              "title" : "Customer-provided encryption keys (SSE-C)"
+            } ],
+            "title" : "Encryption method",
+            "description" : "Select the server-side encryption method to use.",
+            "default" : "S3"
+          },
+          "workingDirectory" : {
+            "type" : "string",
+            "title" : "Working directory",
+            "description" : "Specifies the <i>working directory</i> using the path syntax explained above. The working directory must be\nspecified as an absolute path. A working directory allows downstream nodes to access files/folders using\n<i>relative</i> paths, i.e. paths that do not have a leading slash. If not specified, the default working\ndirectory is \"/\".\n",
+            "default" : "/"
+          }
+        }
+      }
+    }
+  },
+  "ui_schema" : {
+    "elements" : [ {
+      "label" : "Endpoint Settings",
+      "type" : "Section",
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/endpointUrl",
+        "options" : {
+          "placeholder" : "e.g. https://s3.us-west-2.amazonaws.com/"
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/pathStyle",
+        "options" : {
+          "format" : "checkbox",
+          "isAdvanced" : true
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/region",
+        "options" : {
+          "isAdvanced" : true
+        }
+      } ]
+    }, {
+      "label" : "Authentication Settings",
+      "type" : "Section",
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/authParameters/properties/type"
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/authParameters/properties/credentials",
+        "options" : {
+          "passwordLabel" : "Secret key",
+          "usernameLabel" : "Access key ID",
+          "format" : "legacyCredentials"
+        },
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "scope" : "#/properties/model/properties/authParameters/properties/type",
+            "schema" : {
+              "oneOf" : [ {
+                "const" : "ACCESS_KEY"
+              } ]
+            }
+          }
+        }
+      } ]
+    }, {
+      "label" : "File System Settings",
+      "type" : "Section",
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/workingDirectory",
+        "options" : {
+          "placeholder" : "/",
+          "selectionMode" : "FOLDER",
+          "format" : "stringFileChooser"
+        },
+        "providedOptions" : [ "fileSystemId" ]
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/normalizePaths",
+        "options" : {
+          "format" : "checkbox"
+        }
+      } ]
+    }, {
+      "label" : "Connection Settings",
+      "type" : "Section",
+      "options" : {
+        "isAdvanced" : true
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/socketTimeout",
+        "options" : {
+          "stepSize" : 10.0,
+          "validation" : {
+            "max" : {
+              "errorMessage" : "The value must not exceed 2147483647.",
+              "parameters" : {
+                "isExclusive" : false,
+                "max" : 2.147483647E9
+              }
+            },
+            "min" : {
+              "errorMessage" : "The value must be at least 0.",
+              "parameters" : {
+                "isExclusive" : false,
+                "min" : 0.0
+              }
+            }
+          },
+          "isAdvanced" : true
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/connectionTimeout",
+        "options" : {
+          "stepSize" : 10.0,
+          "validation" : {
+            "max" : {
+              "errorMessage" : "The value must not exceed 2147483647.",
+              "parameters" : {
+                "isExclusive" : false,
+                "max" : 2.147483647E9
+              }
+            },
+            "min" : {
+              "errorMessage" : "The value must be at least 0.",
+              "parameters" : {
+                "isExclusive" : false,
+                "min" : 0.0
+              }
+            }
+          }
+        }
+      } ]
+    }, {
+      "label" : "Server-Side Encryption (SSE)",
+      "type" : "Section",
+      "options" : {
+        "isAdvanced" : true
+      },
+      "elements" : [ {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/sseEnabled",
+        "options" : {
+          "format" : "checkbox",
+          "isAdvanced" : true
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/sseMode",
+        "options" : {
+          "isAdvanced" : true
+        },
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "scope" : "#/properties/model/properties/sseEnabled",
+            "schema" : {
+              "const" : true
+            }
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/kmsKeySettings/properties/useAwsManagedKey",
+        "options" : {
+          "format" : "checkbox",
+          "isAdvanced" : true
+        },
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "scope" : "#/properties/model/properties/sseEnabled",
+              "schema" : {
+                "const" : true
+              }
+            }, {
+              "scope" : "#/properties/model/properties/sseMode",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "KMS"
+                } ]
+              }
+            } ]
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId",
+        "options" : {
+          "isAdvanced" : true,
+          "format" : "dropDown",
+          "allowNewValue" : true
+        },
+        "providedOptions" : [ "possibleValues" ],
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "type" : "AND",
+              "conditions" : [ {
+                "scope" : "#/properties/model/properties/sseEnabled",
+                "schema" : {
+                  "const" : true
+                }
+              }, {
+                "scope" : "#/properties/model/properties/sseMode",
+                "schema" : {
+                  "oneOf" : [ {
+                    "const" : "KMS"
+                  } ]
+                }
+              } ]
+            }, {
+              "scope" : "#/properties/model/properties/kmsKeySettings/properties/useAwsManagedKey",
+              "schema" : {
+                "const" : false
+              }
+            } ]
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource",
+        "options" : {
+          "isAdvanced" : true,
+          "format" : "radio",
+          "radioLayout" : "vertical"
+        },
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "scope" : "#/properties/model/properties/sseEnabled",
+              "schema" : {
+                "const" : true
+              }
+            }, {
+              "scope" : "#/properties/model/properties/sseMode",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "CUSTOMER_PROVIDED"
+                } ]
+              }
+            } ]
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKey",
+        "options" : {
+          "isAdvanced" : true
+        },
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "type" : "AND",
+              "conditions" : [ {
+                "scope" : "#/properties/model/properties/sseEnabled",
+                "schema" : {
+                  "const" : true
+                }
+              }, {
+                "scope" : "#/properties/model/properties/sseMode",
+                "schema" : {
+                  "oneOf" : [ {
+                    "const" : "CUSTOMER_PROVIDED"
+                  } ]
+                }
+              } ]
+            }, {
+              "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "SETTINGS"
+                } ]
+              }
+            } ]
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeyVar",
+        "options" : {
+          "isAdvanced" : true,
+          "format" : "dropDown"
+        },
+        "providedOptions" : [ "possibleValues" ],
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "type" : "AND",
+              "conditions" : [ {
+                "scope" : "#/properties/model/properties/sseEnabled",
+                "schema" : {
+                  "const" : true
+                }
+              }, {
+                "scope" : "#/properties/model/properties/sseMode",
+                "schema" : {
+                  "oneOf" : [ {
+                    "const" : "CUSTOMER_PROVIDED"
+                  } ]
+                }
+              } ]
+            }, {
+              "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "CREDENTIAL_VAR"
+                } ]
+              }
+            } ]
+          }
+        }
+      }, {
+        "type" : "Control",
+        "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeyFile",
+        "options" : {
+          "isLocal" : true,
+          "spaceFSOptions" : {
+            "mountId" : "Local space"
+          },
+          "format" : "fileChooser",
+          "isAdvanced" : true
+        },
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "type" : "AND",
+              "conditions" : [ {
+                "scope" : "#/properties/model/properties/sseEnabled",
+                "schema" : {
+                  "const" : true
+                }
+              }, {
+                "scope" : "#/properties/model/properties/sseMode",
+                "schema" : {
+                  "oneOf" : [ {
+                    "const" : "CUSTOMER_PROVIDED"
+                  } ]
+                }
+              } ]
+            }, {
+              "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "FILE"
+                } ]
+              }
+            } ]
+          }
+        }
+      } ]
+    } ]
+  },
+  "persist" : {
+    "type" : "object",
+    "properties" : {
+      "model" : {
+        "type" : "object",
+        "properties" : {
+          "infoMessage" : { },
+          "workingDirectory" : {
+            "configKey" : "workingDirectory"
+          },
+          "normalizePaths" : {
+            "configKey" : "normalizePaths"
+          },
+          "socketTimeout" : {
+            "configKey" : "readWriteTimeoutInSeconds"
+          },
+          "sseEnabled" : {
+            "configKey" : "sseEnabled"
+          },
+          "sseMode" : {
+            "configPaths" : [ [ "sseMode" ] ]
+          },
+          "kmsKeySettings" : {
+            "type" : "object",
+            "properties" : {
+              "useAwsManagedKey" : {
+                "configKey" : "sseKmsUseAwsManaged"
+              },
+              "kmsKeyId" : {
+                "configKey" : "sseKmsKeyId"
+              }
+            },
+            "propertiesRoute" : [ ".." ]
+          },
+          "customerKeySettings" : {
+            "type" : "object",
+            "properties" : {
+              "customerKeySource" : {
+                "configPaths" : [ [ "sseCustomerKeySource" ] ]
+              },
+              "customerKey" : {
+                "configKey" : "sseCustomerKey"
+              },
+              "customerKeyVar" : {
+                "configKey" : "sseCustomerKeyVar"
+              },
+              "customerKeyFile" : {
+                "configPaths" : [ [ "sseCustomerKeyFile", "path" ] ]
+              }
+            },
+            "propertiesRoute" : [ ".." ]
+          },
+          "endpointUrl" : {
+            "configKey" : "endpointURL"
+          },
+          "pathStyle" : {
+            "configKey" : "pathStyle"
+          },
+          "region" : {
+            "configKey" : "region"
+          },
+          "authParameters" : {
+            "type" : "object",
+            "properties" : {
+              "type" : {
+                "configPaths" : [ [ "type" ] ]
+              },
+              "credentials" : {
+                "type" : "object",
+                "properties" : {
+                  "credentials" : { },
+                  "flowVarName" : {
+                    "configPaths" : [ ]
+                  }
+                },
+                "configKey" : "accessAndSecretKeyV2",
+                "deprecatedConfigKeys" : [ {
+                  "deprecated" : [ [ "accessAndSecretKey" ] ]
+                } ]
+              }
+            },
+            "configKey" : "auth"
+          },
+          "connectionTimeout" : {
+            "configKey" : "connectionTimeoutInSeconds"
+          }
+        }
+      }
+    }
+  },
+  "initialUpdates" : [ {
+    "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeyVar",
+    "providedOptionName" : "possibleValues",
+    "values" : [ {
+      "indices" : [ ],
+      "value" : [ ]
+    } ]
+  } ],
+  "globalUpdates" : [ {
+    "trigger" : {
+      "id" : "after-open-dialog"
+    },
+    "triggerInitially" : true,
+    "dependencies" : [ "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/normalizePaths", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource"
+    },
+    "dependencies" : [ "#/properties/model/properties/customerKeySettings/properties/customerKeySource", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/kmsKeySettings"
+    },
+    "dependencies" : [ "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/sseEnabled"
+    },
+    "dependencies" : [ "#/properties/model/properties/customerKeySettings/properties/customerKeySource", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/sseMode"
+    },
+    "dependencies" : [ "#/properties/model/properties/customerKeySettings/properties/customerKeySource", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+  } ]
+}
