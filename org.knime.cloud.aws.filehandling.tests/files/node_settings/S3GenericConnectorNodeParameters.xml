@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://www.knime.org/2008/09/XMLConfig" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.knime.org/2008/09/XMLConfig http://www.knime.org/XMLConfig_2008_09.xsd" key="settings.xml">
+    <entry key="node_file" type="xstring" value="settings.xml"/>
+    <config key="flow_stack"/>
+    <config key="internal_node_subsettings">
+        <entry key="memory_policy" type="xstring" value="CacheSmallInMemory"/>
+    </config>
+    <config key="model">
+        <config key="auth">
+            <config key="type_Internals">
+                <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+                <entry key="EnabledStatus" type="xboolean" value="true"/>
+            </config>
+            <entry key="type" type="xstring" value="accessAndSecretKey"/>
+            <config key="accessAndSecretKey">
+                <config key="use_credentials_Internals">
+                    <entry key="SettingsModelID" type="xstring" value="SMID_boolean"/>
+                    <entry key="EnabledStatus" type="xboolean" value="true"/>
+                </config>
+                <entry key="use_credentials" type="xboolean" value="false"/>
+                <config key="credentials_Internals">
+                    <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+                    <entry key="EnabledStatus" type="xboolean" value="false"/>
+                </config>
+                <entry key="credentials" type="xstring" isnull="true" value=""/>
+                <config key="user_Internals">
+                    <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+                    <entry key="EnabledStatus" type="xboolean" value="true"/>
+                </config>
+                <entry key="user" type="xstring" value="magnus"/>
+                <config key="password_Internals">
+                    <entry key="SettingsModelID" type="xstring" value="SMID_password"/>
+                    <entry key="EnabledStatus" type="xboolean" value="true"/>
+                </config>
+                <entry key="password" type="xpassword" value=""/>
+            </config>
+            <config key="defaultCredProviderChain"/>
+            <config key="anonymous"/>
+        </config>
+        <config key="readWriteTimeoutInSeconds_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_integer"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <entry key="readWriteTimeoutInSeconds" type="xint" value="30"/>
+        <config key="normalizePaths_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_boolean"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <entry key="normalizePaths" type="xboolean" value="true"/>
+        <config key="workingDirectory_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <entry key="workingDirectory" type="xstring" value="/"/>
+        <config key="sseEnabled_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_boolean"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <entry key="sseEnabled" type="xboolean" value="false"/>
+        <config key="sseMode_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+            <entry key="EnabledStatus" type="xboolean" value="false"/>
+        </config>
+        <entry key="sseMode" type="xstring" value="SSE-S3"/>
+        <config key="sseKmsUseAwsManaged_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_boolean"/>
+            <entry key="EnabledStatus" type="xboolean" value="false"/>
+        </config>
+        <entry key="sseKmsUseAwsManaged" type="xboolean" value="true"/>
+        <config key="sseKmsKeyId_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+            <entry key="EnabledStatus" type="xboolean" value="false"/>
+        </config>
+        <entry key="sseKmsKeyId" type="xstring" value=""/>
+        <entry key="sseCustomerKeySource" type="xstring" value="settings"/>
+        <config key="sseCustomerKey_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+            <entry key="EnabledStatus" type="xboolean" value="false"/>
+        </config>
+        <entry key="sseCustomerKey" type="xstring" value=""/>
+        <config key="sseCustomerKeyVar_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+            <entry key="EnabledStatus" type="xboolean" value="false"/>
+        </config>
+        <entry key="sseCustomerKeyVar" type="xstring" value=""/>
+        <config key="sseCustomerKeyFile_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_ReaderFileChooser"/>
+            <entry key="EnabledStatus" type="xboolean" value="false"/>
+        </config>
+        <config key="sseCustomerKeyFile">
+            <config key="file_system_chooser__Internals">
+                <entry key="has_fs_port" type="xboolean" value="false"/>
+                <entry key="overwritten_by_variable" type="xboolean" value="false"/>
+                <entry key="convenience_fs_category" type="xstring" value="LOCAL"/>
+                <entry key="relative_to" type="xstring" value="knime.workflow.data"/>
+                <entry key="mountpoint" type="xstring" value="knime-temp-space"/>
+                <entry key="spaceId" type="xstring" value=""/>
+                <entry key="spaceName" type="xstring" value=""/>
+                <entry key="custom_url_timeout" type="xint" value="10000"/>
+                <entry key="connected_fs" type="xboolean" value="true"/>
+            </config>
+            <config key="path">
+                <entry key="location_present" type="xboolean" value="true"/>
+                <entry key="file_system_type" type="xstring" value="LOCAL"/>
+                <entry key="path" type="xstring" value=""/>
+            </config>
+            <config key="filter_mode_Internals">
+                <entry key="SettingsModelID" type="xstring" value="SMID_FilterMode"/>
+                <entry key="EnabledStatus" type="xboolean" value="false"/>
+            </config>
+        </config>
+        <config key="endpointURL_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <entry key="endpointURL" type="xstring" value="https://s3.us-west-2.amazonaws.com/"/>
+        <config key="region_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_string"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <entry key="region" type="xstring" value="eu-west"/>
+        <config key="pathStyle_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_boolean"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <entry key="pathStyle" type="xboolean" value="true"/>
+        <config key="connectionTimeoutInSeconds_Internals">
+            <entry key="SettingsModelID" type="xstring" value="SMID_integer"/>
+            <entry key="EnabledStatus" type="xboolean" value="true"/>
+        </config>
+        <entry key="connectionTimeoutInSeconds" type="xint" value="30"/>
+    </config>
+    <entry key="customDescription" type="xstring" isnull="true" value=""/>
+    <entry key="state" type="xstring" value="CONFIGURED"/>
+    <entry key="factory" type="xstring" value="org.knime.cloud.aws.filehandling.s3.node.S3GenericConnectorNodeFactory"/>
+    <entry key="node-name" type="xstring" value="Generic S3 Connector"/>
+    <entry key="node-bundle-name" type="xstring" value="Amazon S3 Filehandling"/>
+    <entry key="node-bundle-symbolic-name" type="xstring" value="org.knime.cloud.aws.filehandling"/>
+    <entry key="node-bundle-vendor" type="xstring" value="KNIME AG, Zurich, Switzerland"/>
+    <entry key="node-bundle-version" type="xstring" value="5.6.0.v202507151409"/>
+    <entry key="node-feature-name" type="xstring" value="KNIME Amazon Cloud Connectors"/>
+    <entry key="node-feature-symbolic-name" type="xstring" value="org.knime.features.cloud.aws.feature.group"/>
+    <entry key="node-feature-vendor" type="xstring" value="KNIME AG, Zurich, Switzerland"/>
+    <entry key="node-feature-version" type="xstring" value="5.6.0.v202507241542"/>
+    <config key="factory_settings"/>
+    <config key="node_creation_config">
+        <config key="File System Connection"/>
+        <config key="S3 File System Connection"/>
+    </config>
+    <entry key="name" type="xstring" value="Generic S3 Connector"/>
+    <entry key="hasContent" type="xboolean" value="false"/>
+    <entry key="isInactive" type="xboolean" value="false"/>
+    <config key="ports">
+        <config key="port_1">
+            <entry key="index" type="xint" value="1"/>
+            <entry key="port_dir_location" type="xstring" isnull="true" value=""/>
+        </config>
+    </config>
+    <config key="filestores">
+        <entry key="file_store_location" type="xstring" isnull="true" value=""/>
+        <entry key="file_store_id" type="xstring" isnull="true" value=""/>
+    </config>
+</config>

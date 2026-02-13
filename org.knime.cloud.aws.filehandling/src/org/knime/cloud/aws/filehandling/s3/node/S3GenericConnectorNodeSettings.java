@@ -61,6 +61,7 @@ import org.knime.core.node.defaultnodesettings.SettingsModelIntegerBounded;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.workflow.CredentialsProvider;
+import org.knime.core.webui.node.dialog.defaultdialog.setting.credentials.LegacyCredentialsAuthProviderSettings;
 import org.knime.filehandling.core.connections.base.auth.AuthSettings;
 import org.knime.filehandling.core.connections.base.auth.AuthType;
 import org.knime.filehandling.core.connections.base.auth.EmptyAuthProviderSettings;
@@ -106,6 +107,9 @@ class S3GenericConnectorNodeSettings extends S3ConnectorNodeSettings {
     static final AuthType ACCESS_KEY_AND_SECRET_AUTH = new AuthType("accessAndSecretKey",
         "Access Key ID and Secret Key", "Authenticate using Access Key ID and Secret Key");
 
+    static final AuthType ACCESS_KEY_AND_SECRET_AUTH_V2 = new AuthType("accessAndSecretKeyV2",
+        "Access Key ID and Secret Key", "Authenticate using Access Key ID and Secret Key");
+
     static final AuthType DEFAULT_PROVIDER_CHAIN_AUTH = new AuthType("defaultCredProviderChain",
         "Default Credential Provider Chain", "Authenticate using the default Credential Provider Chain");
 
@@ -121,6 +125,7 @@ class S3GenericConnectorNodeSettings extends S3ConnectorNodeSettings {
             .add(new EmptyAuthProviderSettings(StandardAuthTypes.ANONYMOUS)) //
             .add(new IDWithSecretAuthProviderSettings(ACCESS_KEY_AND_SECRET_AUTH, true, KEY_ACCESS_KEY_ID,
                 KEY_ACCESS_KEY_SECRET)) // using settings keys "user"/"password" for backwards compatibility
+            .add(new LegacyCredentialsAuthProviderSettings(ACCESS_KEY_AND_SECRET_AUTH_V2, true))
             .add(new EmptyAuthProviderSettings(DEFAULT_PROVIDER_CHAIN_AUTH)) //
             .defaultType(ACCESS_KEY_AND_SECRET_AUTH) //
             .build();
@@ -319,14 +324,21 @@ class S3GenericConnectorNodeSettings extends S3ConnectorNodeSettings {
             connInfo.setHost(region);
         }
 
-        if(m_authSettings.getAuthType() == StandardAuthTypes.ANONYMOUS) {
+        if (m_authSettings.getAuthType() == StandardAuthTypes.ANONYMOUS) {
             connInfo.setUseAnonymous(true);
         } else if (m_authSettings.getAuthType() == ACCESS_KEY_AND_SECRET_AUTH) {
             final IDWithSecretAuthProviderSettings userPassSettings =
                 m_authSettings.getSettingsForAuthType(ACCESS_KEY_AND_SECRET_AUTH);
             connInfo.setUser(userPassSettings.getID(credentials::get));
             connInfo.setPassword(userPassSettings.getSecret(credentials::get));
-        } else if(m_authSettings.getAuthType() == DEFAULT_PROVIDER_CHAIN_AUTH) {
+        } else if (m_authSettings.getAuthType() == ACCESS_KEY_AND_SECRET_AUTH_V2) {
+            final LegacyCredentialsAuthProviderSettings credentialSettings =
+                (LegacyCredentialsAuthProviderSettings)m_authSettings
+                    .getSettingsForAuthType(ACCESS_KEY_AND_SECRET_AUTH_V2);
+            final var legacyCredentials = credentialSettings.getCredentials(credentials);
+            connInfo.setUser(legacyCredentials.getUsername());
+            connInfo.setPassword(legacyCredentials.getPassword());
+        } else if (m_authSettings.getAuthType() == DEFAULT_PROVIDER_CHAIN_AUTH) {
             connInfo.setUseKerberos(true);
         } else {
             throw new InvalidSettingsException("Unsupported authentication");
