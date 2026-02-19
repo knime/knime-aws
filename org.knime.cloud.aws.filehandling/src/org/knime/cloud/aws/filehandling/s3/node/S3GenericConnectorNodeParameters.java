@@ -46,11 +46,28 @@
 
 package org.knime.cloud.aws.filehandling.s3.node;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
+
+import org.knime.cloud.aws.filehandling.s3.fs.S3FSConnection;
 import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig;
-import org.knime.cloud.aws.filehandling.s3.node.S3GenericConnectorNodeParameters.RemoveAmazonS3ConnectionInfoMessage;
+import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig.SSEMode;
+import org.knime.cloud.aws.filehandling.s3.node.AbstractS3ConnectorNodeParameters.KmsKeySettings.KmsKeyIdModeRef;
+import org.knime.cloud.aws.filehandling.s3.node.S3GenericConnectorNodeParameters.AuthenticationParameters.AuthenticationMethod;
+import org.knime.cloud.aws.filehandling.s3.node.S3GenericConnectorNodeParameters.GenericS3ConnectorModification;
+import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.webui.node.dialog.defaultdialog.NodeParametersInputImpl;
+import org.knime.core.webui.node.dialog.defaultdialog.internal.file.FSConnectionProvider;
+import org.knime.core.webui.node.dialog.defaultdialog.internal.file.WithCustomFileSystem;
 import org.knime.core.webui.node.dialog.defaultdialog.setting.credentials.LegacyCredentials;
 import org.knime.core.webui.node.dialog.defaultdialog.setting.credentials.LegacyCredentialsAuthProviderSettings;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.Modification;
@@ -58,6 +75,7 @@ import org.knime.core.webui.node.dialog.defaultdialog.widget.Modification.Widget
 import org.knime.filehandling.core.connections.base.auth.UserPasswordAuthProviderSettings;
 import org.knime.node.parameters.Advanced;
 import org.knime.node.parameters.NodeParameters;
+import org.knime.node.parameters.NodeParametersInput;
 import org.knime.node.parameters.Widget;
 import org.knime.node.parameters.layout.Before;
 import org.knime.node.parameters.layout.Layout;
@@ -72,11 +90,18 @@ import org.knime.node.parameters.updates.Effect.EffectType;
 import org.knime.node.parameters.updates.EffectPredicate;
 import org.knime.node.parameters.updates.EffectPredicateProvider;
 import org.knime.node.parameters.updates.ParameterReference;
+import org.knime.node.parameters.updates.StateProvider;
 import org.knime.node.parameters.updates.ValueReference;
+import org.knime.node.parameters.updates.util.BooleanReference;
 import org.knime.node.parameters.widget.choices.Label;
+import org.knime.node.parameters.widget.choices.StringChoice;
+import org.knime.node.parameters.widget.choices.StringChoicesProvider;
+import org.knime.node.parameters.widget.choices.SuggestionsProvider;
 import org.knime.node.parameters.widget.credentials.Credentials;
 import org.knime.node.parameters.widget.credentials.CredentialsWidget;
 import org.knime.node.parameters.widget.message.TextMessage;
+import org.knime.node.parameters.widget.message.TextMessage.Message;
+import org.knime.node.parameters.widget.message.TextMessage.MessageType;
 import org.knime.node.parameters.widget.number.NumberInputWidget;
 import org.knime.node.parameters.widget.number.NumberInputWidgetValidation.MinValidation.IsNonNegativeValidation;
 import org.knime.node.parameters.widget.text.TextInputWidget;
@@ -88,17 +113,281 @@ import org.knime.node.parameters.widget.text.TextInputWidget;
  * @author AI Migration Pipeline v1.2
  */
 @LoadDefaultsForAbsentFields
+@Modification(GenericS3ConnectorModification.class)
 @SuppressWarnings("restriction")
-@Modification(RemoveAmazonS3ConnectionInfoMessage.class)
-final class S3GenericConnectorNodeParameters extends S3ConnectorNodeParameters {
+final class S3GenericConnectorNodeParameters extends AbstractS3ConnectorNodeParameters {
 
-    static final class RemoveAmazonS3ConnectionInfoMessage implements Modification.Modifier {
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(S3GenericConnectorNodeParameters.class);
+
+    static final class GenericS3ConnectorModification implements Modification.Modifier {
 
         @Override
         public void modify(final WidgetGroupModifier group) {
-            group.find(InfoMessageRef.class).removeAnnotation(TextMessage.class);
+            group.find(InfoMessageRef.class).addAnnotation(TextMessage.class)
+                .withProperty("value", S3InfoMessageProvider.class)
+                .modify();
+            group.find(KmsKeyIdModeRef.class).addAnnotation(SuggestionsProvider.class)
+                .withProperty("value", KmsKeyChoicesProvider.class)
+                .modify();
+            group.find(WorkingDirectoryModRef.class).addAnnotation(WithCustomFileSystem.class)
+                .withProperty("connectionProvider", WorkingDirectoryFileSystemProvider.class)
+                .modify();
         }
 
+    }
+
+    static final class IntermediateConnectionStateProvider
+        implements StateProvider<MessageAndData<CloudConnectionInformation>> {
+
+        Supplier<AuthenticationParameters> m_authParamsSupplier;
+        Supplier<Integer> m_socketTimeoutSupplier;
+        Supplier<String> m_regionSupplier;
+
+        @Override
+        public void init(final StateProviderInitializer initializer) {
+            initializer.computeAfterOpenDialog();
+            m_authParamsSupplier = initializer.computeFromValueSupplier(AuthParameterRef.class);
+            m_socketTimeoutSupplier = initializer.computeFromValueSupplier(SocketTimeoutRef.class);
+            m_regionSupplier = initializer.computeFromValueSupplier(RegionRef.class);
+        }
+
+        @Override
+        public MessageAndData<CloudConnectionInformation> computeState(final NodeParametersInput context) {
+            final var authParams = m_authParamsSupplier.get();
+            if (authParams == null) {
+                return newNoConnectionInfoMessage("Missing authentication parameters.");
+            }
+
+            final var connInfo = new CloudConnectionInformation();
+            connInfo.setProtocol("s3");
+            connInfo.setTimeout(m_socketTimeoutSupplier.get() * 1000);  // timeout in milliseconds
+
+            final var region = m_regionSupplier.get();
+            if (region != null && !region.isEmpty()) {
+                connInfo.setHost(region);
+            }
+
+            if (authParams.m_type == AuthenticationMethod.ANONYMOUS) {
+                connInfo.setUseAnonymous(true);
+            } else if (authParams.m_type == AuthenticationMethod.ACCESS_KEY) {
+                final var credentialsProviderOpt = ((NodeParametersInputImpl)context).getCredentialsProvider();
+                final var credentialsProvider = credentialsProviderOpt.orElseThrow(() -> new IllegalStateException(
+                        "No credentials provider available in workflow context."));
+                connInfo.setUser(authParams.m_credentials.toCredentials(credentialsProvider).getUsername());
+                connInfo.setPassword(authParams.m_credentials.toCredentials(credentialsProvider).getPassword());
+            } else if (authParams.m_type == AuthenticationMethod.DEFAULT_PROVIDER_CHAIN) {
+                connInfo.setUseKerberos(true);
+            } else {
+                return newNoConnectionInfoMessage("Invalid authentication method.");
+            }
+            return new MessageAndData<>(null, connInfo);
+        }
+
+        static MessageAndData<CloudConnectionInformation> newNoConnectionInfoMessage(final String msg) {
+            return new MessageAndData<>(new Message("No connection to AWS", msg, MessageType.INFO), null);
+        }
+
+    }
+
+    /**
+     * Provides a file system connection for browsing S3 directories.
+     * The connection is constructed from:
+     * - CloudConnectionInformation from the shared IntermediateConnectionStateProvider
+     * - Current user configuration (socket timeout, normalization, SSE settings, end point URL and path style config)
+     *
+     * All relevant settings are captured via ValueReferences and used to create a complete S3FSConnectionConfig for
+     * proper file browsing behavior. Returns null when no connection is available
+     * (error is shown via S3InfoMessageProvider).
+     */
+    static final class WorkingDirectoryFileSystemProvider implements StateProvider<FSConnectionProvider> {
+
+        // Shared connection state provider
+        private Supplier<MessageAndData<CloudConnectionInformation>> m_connectionStateSupplier;
+
+        // Member variables to hold supplier references for all configuration settings
+        private Supplier<Integer> m_socketTimeoutSupplier;
+        private Supplier<Boolean> m_normalizePathsSupplier;
+        private Supplier<Boolean> m_sseEnabledSupplier;
+        private Supplier<SSEMode> m_sseModeSupplier;
+        private Supplier<KmsKeySettings> m_kmsKeySettingsSupplier;
+        private Supplier<String> m_endpointUrlSupplier;
+        private Supplier<Boolean> m_pathStyleSupplier;
+
+        @Override
+        public void init(final StateProviderInitializer initializer) {
+            m_connectionStateSupplier = initializer.computeFromProvidedState(IntermediateConnectionStateProvider.class);
+            // Use getValueSupplier() to register as dependencies (not triggers) - on demand only
+            m_socketTimeoutSupplier = initializer.getValueSupplier(SocketTimeoutRef.class);
+            m_normalizePathsSupplier = initializer.getValueSupplier(NormalizePathsRef.class);
+            m_sseEnabledSupplier = initializer.getValueSupplier(SseEnabledRef.class);
+            m_sseModeSupplier = initializer.getValueSupplier(SseModeRef.class);
+            m_kmsKeySettingsSupplier = initializer.getValueSupplier(KmsKeySettingsRef.class);
+            m_endpointUrlSupplier = initializer.getValueSupplier(EndpointUrlRef.class);
+            m_pathStyleSupplier = initializer.getValueSupplier(PathStyleRef.class);
+        }
+
+        @Override
+        public FSConnectionProvider computeState(final NodeParametersInput context) {
+            // Get connection info from shared provider
+            var connState = m_connectionStateSupplier.get();
+            final CloudConnectionInformation connInfo = connState.data();
+            if (connInfo == null) {
+                return () -> { throw new IOException("No connection to S3 could be established."); };
+            }
+
+            String endpointUrl = m_endpointUrlSupplier.get();
+            if (endpointUrl == null || endpointUrl.isEmpty()) {
+                return () -> {
+                    throw new InvalidSettingsException("URL required on endpoint override.");
+                };
+            }
+            try {
+                new URI(endpointUrl); // NOSONAR just checking syntax
+            } catch (final URISyntaxException ex) {
+                return () -> {
+                    throw new InvalidSettingsException("Invalid endpoint URL: " + ex.getMessage(), ex);
+                };
+            }
+
+            boolean usePathStyle = m_pathStyleSupplier.get();
+            int socketTimeout = m_socketTimeoutSupplier.get();
+            boolean normalizePaths = m_normalizePathsSupplier.get();
+            boolean sseEnabled = m_sseEnabledSupplier.get();
+            SSEMode sseMode = m_sseModeSupplier.get();
+            KmsKeySettings kmsKeySettings = m_kmsKeySettingsSupplier.get();
+            final S3FSConnectionConfig config = createS3ConnectionConfig(connInfo, socketTimeout, normalizePaths,
+                sseEnabled, sseMode, kmsKeySettings, endpointUrl, usePathStyle);
+
+            return () -> new S3FSConnection(config);
+        }
+
+        /**
+         * Creates S3FSConnectionConfig from connection info and all user settings.
+         * This mirrors the logic from S3GenericConnectorNodeSettings.toFSConnectionConfig().
+         */
+        private static S3FSConnectionConfig createS3ConnectionConfig( // NOSONAR
+            final CloudConnectionInformation connInfo, //
+            final int socketTimeout, //
+            final boolean normalizePaths, //
+            final boolean sseEnabled, //
+            final SSEMode sseMode, //
+            final KmsKeySettings kmsKeySettings, //
+            final String endpointUrl, //
+            final boolean usePathStyle) {
+
+            // Create config with working directory "/" for browsing
+            S3FSConnectionConfig config = new S3FSConnectionConfig("/", connInfo);
+
+            // Apply user settings
+            config.setNormalizePath(normalizePaths);
+            config.setSocketTimeout(Duration.ofSeconds(socketTimeout));
+
+            // Apply SSE settings if enabled
+            if (sseEnabled) {
+                config.setSseEnabled(true);
+                config.setSseMode(sseMode);
+
+                if (sseMode == SSEMode.KMS && kmsKeySettings != null) {
+                    config.setSseKmsUseAwsManaged(kmsKeySettings.m_useAwsManagedKey);
+                    if (!kmsKeySettings.m_useAwsManagedKey && kmsKeySettings.m_kmsKeyId != null) {
+                        config.setSseKmsKeyId(kmsKeySettings.m_kmsKeyId);
+                    }
+                }
+                // Note: SSE-C customer key handling is more complex (requires credentials provider)
+                // and is not needed for file browsing, so we omit it here
+            } else {
+                config.setSseEnabled(false);
+            }
+
+            config.setOverrideEndpoint(true);
+            config.setEndpointUrl(URI.create(endpointUrl));
+            config.setPathStyle(usePathStyle);
+
+            return config;
+        }
+    }
+
+    /**
+     * Message provider that aggregates error messages from intermediate state providers (connection, KMS keys).
+     * Returns the first error message encountered, or empty if no errors.
+     */
+    static final class S3InfoMessageProvider implements StateProvider<Optional<TextMessage.Message>> {
+
+        private Supplier<MessageAndData<CloudConnectionInformation>> m_connectionStateSupplier;
+        private Supplier<MessageAndData<List<StringChoice>>> m_kmsKeysStateSupplier;
+
+        @Override
+        public void init(final StateProviderInitializer initializer) {
+            m_connectionStateSupplier =
+                    initializer.computeFromProvidedState(IntermediateConnectionStateProvider.class);
+            m_kmsKeysStateSupplier = initializer.computeFromProvidedState(IntermediateKmsKeysStateProvider.class);
+        }
+
+        @Override
+        public Optional<TextMessage.Message> computeState(final NodeParametersInput context) {
+            // Check connection errors first (most fundamental)
+            var connState = m_connectionStateSupplier.get();
+            if (connState.message() != null) {
+                return Optional.of(connState.message());
+            }
+
+            var kmsState = m_kmsKeysStateSupplier.get();
+            if (kmsState.message() != null) {
+                return Optional.of(kmsState.message());
+            }
+
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Intermediate state provider for KMS keys that returns both error message and data.
+     * This allows the error to be displayed in the UI while still providing choices.
+     * Uses the shared IntermediateConnectionStateProvider for connection info.
+     */
+    static final class IntermediateKmsKeysStateProvider //
+        implements StateProvider<MessageAndData<List<StringChoice>>> {
+
+        private Supplier<MessageAndData<CloudConnectionInformation>> m_connectionStateSupplier;
+        private Supplier<Boolean> m_sseEnabledSupplier;
+        private Supplier<SSEMode> m_sseModeSupplier;
+        private Supplier<KmsKeySettings> m_kmsKeySettingsSupplier;
+
+        @Override
+        public void init(final StateProviderInitializer initializer) {
+            m_connectionStateSupplier =
+                    initializer.computeFromProvidedState(IntermediateConnectionStateProvider.class);
+            m_sseEnabledSupplier = initializer.computeFromValueSupplier(SseEnabledRef.class);
+            m_sseModeSupplier = initializer.computeFromValueSupplier(SseModeRef.class);
+            m_kmsKeySettingsSupplier = initializer.computeFromValueSupplier(KmsKeySettingsRef.class);
+        }
+
+        @Override
+        public MessageAndData<List<StringChoice>> computeState(final NodeParametersInput context) {
+            return S3ConnectorNodeParameterUtil.getIntermediateKmsKeys(
+                m_connectionStateSupplier, m_sseEnabledSupplier, m_sseModeSupplier, m_kmsKeySettingsSupplier, LOGGER);
+        }
+
+    }
+
+    /**
+     * Provider that returns the list of available KMS keys from the intermediate state provider.
+     * Requires permissions: kms:ListKeys, kms:DescribeKey and optionally kms:ListAliases.
+     */
+    static final class KmsKeyChoicesProvider implements StringChoicesProvider {
+
+        private Supplier<MessageAndData<List<StringChoice>>> m_kmsKeysStateSupplier;
+
+        @Override
+        public void init(final StateProviderInitializer initializer) {
+            m_kmsKeysStateSupplier = initializer.computeFromProvidedState(IntermediateKmsKeysStateProvider.class);
+        }
+
+        @Override
+        public List<StringChoice> computeState(final NodeParametersInput context) {
+            // Get data from intermediate state (errors are reported via TextMessage)
+            return m_kmsKeysStateSupplier.get().data();
+        }
     }
 
     @Before(AuthenticationSettings.class)
@@ -115,7 +404,11 @@ final class S3GenericConnectorNodeParameters extends S3ConnectorNodeParameters {
     @Layout(EndpointSettings.class)
     @Widget(title = "Endpoint", description = "<tt>http(s)</tt> URL of the S3-compatible service endpoint.")
     @TextInputWidget(placeholder = "e.g. https://s3.us-west-2.amazonaws.com/")
+    @ValueReference(EndpointUrlRef.class)
     String m_endpointUrl = "";
+
+    static final class EndpointUrlRef implements ParameterReference<String> {
+    }
 
     @Persist(configKey = "pathStyle")
     @Advanced
@@ -127,7 +420,11 @@ final class S3GenericConnectorNodeParameters extends S3ConnectorNodeParameters {
             <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html">AWS documentation</a>.
             """)
     @Layout(EndpointSettings.class)
+    @ValueReference(PathStyleRef.class)
     boolean m_pathStyle = true;
+
+    static final class PathStyleRef implements BooleanReference {
+    }
 
     @Persist(configKey = "region")
     @Advanced
@@ -136,11 +433,19 @@ final class S3GenericConnectorNodeParameters extends S3ConnectorNodeParameters {
             Optional region to set on the client. Might be empty, depending on how your S3-compatible endpoint is
             set up.
             """)
+    @ValueReference(RegionRef.class)
     String m_region = "";
+
+    static final class RegionRef implements ParameterReference<String> {
+    }
 
     @Persist(configKey = "auth")
     @Layout(AuthenticationSettings.class)
+    @ValueReference(AuthParameterRef.class)
     AuthenticationParameters m_authParameters = new AuthenticationParameters();
+
+    static final class AuthParameterRef implements ParameterReference<AuthenticationParameters> {
+    }
 
     // for mocking in tests
     static LegacyCredentials getDefaultLegacyCredentials() {

@@ -286,6 +286,13 @@
   },
   "ui_schema" : {
     "elements" : [ {
+      "type" : "Control",
+      "id" : "#/properties/model/properties/infoMessage",
+      "options" : {
+        "format" : "textMessage"
+      },
+      "providedOptions" : [ "message" ]
+    }, {
       "label" : "Endpoint Settings",
       "type" : "Section",
       "elements" : [ {
@@ -740,7 +747,12 @@
       "id" : "after-open-dialog"
     },
     "triggerInitially" : true,
-    "dependencies" : [ "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/normalizePaths", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+    "dependencies" : [ "#/properties/model/properties/authParameters", "#/properties/model/properties/endpointUrl", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/normalizePaths", "#/properties/model/properties/pathStyle", "#/properties/model/properties/region", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/authParameters"
+    },
+    "dependencies" : [ "#/properties/model/properties/authParameters", "#/properties/model/properties/endpointUrl", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/normalizePaths", "#/properties/model/properties/pathStyle", "#/properties/model/properties/region", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
   }, {
     "trigger" : {
       "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource"
@@ -750,16 +762,26 @@
     "trigger" : {
       "scope" : "#/properties/model/properties/kmsKeySettings"
     },
-    "dependencies" : [ "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+    "dependencies" : [ "#/properties/model/properties/authParameters", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/region", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/region"
+    },
+    "dependencies" : [ "#/properties/model/properties/authParameters", "#/properties/model/properties/endpointUrl", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/normalizePaths", "#/properties/model/properties/pathStyle", "#/properties/model/properties/region", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+  }, {
+    "trigger" : {
+      "scope" : "#/properties/model/properties/socketTimeout"
+    },
+    "dependencies" : [ "#/properties/model/properties/authParameters", "#/properties/model/properties/endpointUrl", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/normalizePaths", "#/properties/model/properties/pathStyle", "#/properties/model/properties/region", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
   }, {
     "trigger" : {
       "scope" : "#/properties/model/properties/sseEnabled"
     },
-    "dependencies" : [ "#/properties/model/properties/customerKeySettings/properties/customerKeySource", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+    "dependencies" : [ "#/properties/model/properties/authParameters", "#/properties/model/properties/customerKeySettings/properties/customerKeySource", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/region", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
   }, {
     "trigger" : {
       "scope" : "#/properties/model/properties/sseMode"
     },
-    "dependencies" : [ "#/properties/model/properties/customerKeySettings/properties/customerKeySource", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
+    "dependencies" : [ "#/properties/model/properties/authParameters", "#/properties/model/properties/customerKeySettings/properties/customerKeySource", "#/properties/model/properties/kmsKeySettings", "#/properties/model/properties/region", "#/properties/model/properties/socketTimeout", "#/properties/model/properties/sseEnabled", "#/properties/model/properties/sseMode" ]
   } ]
 }
