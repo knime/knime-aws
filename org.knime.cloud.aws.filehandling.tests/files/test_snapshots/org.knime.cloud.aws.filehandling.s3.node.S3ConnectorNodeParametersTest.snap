@@ -288,41 +288,45 @@
           }
         }
       }, {
-        "type" : "Control",
-        "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId",
-        "options" : {
-          "isAdvanced" : true,
-          "format" : "dropDown",
-          "allowNewValue" : true
-        },
-        "providedOptions" : [ "possibleValues" ],
+        "type" : "MultiRuleWrapper",
         "rule" : {
           "effect" : "SHOW",
           "condition" : {
             "type" : "AND",
             "conditions" : [ {
-              "type" : "AND",
-              "conditions" : [ {
-                "scope" : "#/properties/model/properties/sseEnabled",
-                "schema" : {
-                  "const" : true
-                }
-              }, {
-                "scope" : "#/properties/model/properties/sseMode",
-                "schema" : {
-                  "oneOf" : [ {
-                    "const" : "KMS"
-                  } ]
-                }
-              } ]
-            }, {
-              "scope" : "#/properties/model/properties/kmsKeySettings/properties/useAwsManagedKey",
+              "scope" : "#/properties/model/properties/sseEnabled",
               "schema" : {
-                "const" : false
+                "const" : true
+              }
+            }, {
+              "scope" : "#/properties/model/properties/sseMode",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "KMS"
+                } ]
               }
             } ]
           }
-        }
+        },
+        "elements" : [ {
+          "type" : "Control",
+          "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId",
+          "options" : {
+            "isAdvanced" : true,
+            "format" : "dropDown",
+            "allowNewValue" : true
+          },
+          "providedOptions" : [ "possibleValues" ],
+          "rule" : {
+            "effect" : "HIDE",
+            "condition" : {
+              "scope" : "#/properties/model/properties/kmsKeySettings/properties/useAwsManagedKey",
+              "schema" : {
+                "const" : true
+              }
+            }
+          }
+        } ]
       }, {
         "type" : "Control",
         "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource",
@@ -351,117 +355,129 @@
           }
         }
       }, {
-        "type" : "Control",
-        "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKey",
-        "options" : {
-          "isAdvanced" : true
-        },
+        "type" : "MultiRuleWrapper",
         "rule" : {
           "effect" : "SHOW",
           "condition" : {
             "type" : "AND",
             "conditions" : [ {
-              "type" : "AND",
-              "conditions" : [ {
-                "scope" : "#/properties/model/properties/sseEnabled",
-                "schema" : {
-                  "const" : true
-                }
-              }, {
-                "scope" : "#/properties/model/properties/sseMode",
-                "schema" : {
-                  "oneOf" : [ {
-                    "const" : "CUSTOMER_PROVIDED"
-                  } ]
-                }
-              } ]
+              "scope" : "#/properties/model/properties/sseEnabled",
+              "schema" : {
+                "const" : true
+              }
             }, {
+              "scope" : "#/properties/model/properties/sseMode",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "CUSTOMER_PROVIDED"
+                } ]
+              }
+            } ]
+          }
+        },
+        "elements" : [ {
+          "type" : "Control",
+          "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKey",
+          "options" : {
+            "isAdvanced" : true
+          },
+          "rule" : {
+            "effect" : "SHOW",
+            "condition" : {
               "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource",
               "schema" : {
                 "oneOf" : [ {
                   "const" : "SETTINGS"
                 } ]
               }
-            } ]
+            }
           }
-        }
+        } ]
       }, {
-        "type" : "Control",
-        "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeyVar",
-        "options" : {
-          "isAdvanced" : true,
-          "format" : "dropDown"
-        },
-        "providedOptions" : [ "possibleValues" ],
+        "type" : "MultiRuleWrapper",
         "rule" : {
           "effect" : "SHOW",
           "condition" : {
             "type" : "AND",
             "conditions" : [ {
-              "type" : "AND",
-              "conditions" : [ {
-                "scope" : "#/properties/model/properties/sseEnabled",
-                "schema" : {
-                  "const" : true
-                }
-              }, {
-                "scope" : "#/properties/model/properties/sseMode",
-                "schema" : {
-                  "oneOf" : [ {
-                    "const" : "CUSTOMER_PROVIDED"
-                  } ]
-                }
-              } ]
+              "scope" : "#/properties/model/properties/sseEnabled",
+              "schema" : {
+                "const" : true
+              }
             }, {
+              "scope" : "#/properties/model/properties/sseMode",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "CUSTOMER_PROVIDED"
+                } ]
+              }
+            } ]
+          }
+        },
+        "elements" : [ {
+          "type" : "Control",
+          "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeyVar",
+          "options" : {
+            "isAdvanced" : true,
+            "format" : "dropDown"
+          },
+          "providedOptions" : [ "possibleValues" ],
+          "rule" : {
+            "effect" : "SHOW",
+            "condition" : {
               "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource",
               "schema" : {
                 "oneOf" : [ {
                   "const" : "CREDENTIAL_VAR"
                 } ]
               }
-            } ]
+            }
           }
-        }
+        } ]
       }, {
-        "type" : "Control",
-        "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeyFile",
-        "options" : {
-          "isLocal" : true,
-          "spaceFSOptions" : {
-            "mountId" : "Local space"
-          },
-          "format" : "fileChooser",
-          "isAdvanced" : true
-        },
+        "type" : "MultiRuleWrapper",
         "rule" : {
           "effect" : "SHOW",
           "condition" : {
             "type" : "AND",
             "conditions" : [ {
-              "type" : "AND",
-              "conditions" : [ {
-                "scope" : "#/properties/model/properties/sseEnabled",
-                "schema" : {
-                  "const" : true
-                }
-              }, {
-                "scope" : "#/properties/model/properties/sseMode",
-                "schema" : {
-                  "oneOf" : [ {
-                    "const" : "CUSTOMER_PROVIDED"
-                  } ]
-                }
-              } ]
+              "scope" : "#/properties/model/properties/sseEnabled",
+              "schema" : {
+                "const" : true
+              }
             }, {
+              "scope" : "#/properties/model/properties/sseMode",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "CUSTOMER_PROVIDED"
+                } ]
+              }
+            } ]
+          }
+        },
+        "elements" : [ {
+          "type" : "Control",
+          "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeyFile",
+          "options" : {
+            "isLocal" : true,
+            "spaceFSOptions" : {
+              "mountId" : "Local space"
+            },
+            "format" : "fileChooser",
+            "isAdvanced" : true
+          },
+          "rule" : {
+            "effect" : "SHOW",
+            "condition" : {
               "scope" : "#/properties/model/properties/customerKeySettings/properties/customerKeySource",
               "schema" : {
                 "oneOf" : [ {
                   "const" : "FILE"
                 } ]
               }
-            } ]
+            }
           }
-        }
+        } ]
       } ]
     } ]
   },
