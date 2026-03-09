@@ -242,8 +242,7 @@ abstract class AbstractS3ConnectorNodeParameters implements NodeParameters {
     static final class SseEnabledAndKmsModRef implements EffectPredicateProvider {
         @Override
         public EffectPredicate init(final PredicateInitializer i) {
-            return i.getBoolean(SseEnabledRef.class).isTrue()
-                .and(i.getEnum(SseModeRef.class).isOneOf(SSEMode.KMS));
+            return i.getBoolean(SseEnabledRef.class).isTrue().and(i.getEnum(SseModeRef.class).isOneOf(SSEMode.KMS));
         }
     }
 
@@ -263,14 +262,6 @@ abstract class AbstractS3ConnectorNodeParameters implements NodeParameters {
         static final class UseAwsManagedKeyRef implements BooleanReference {
         }
 
-        static final class SseEnabledAndNotUseAwsManagedKeyRef implements EffectPredicateProvider {
-            @Override
-            public EffectPredicate init(final PredicateInitializer i) {
-                return i.getPredicate(SseEnabledAndKmsModRef.class)
-                    .and(i.getBoolean(UseAwsManagedKeyRef.class).isFalse());
-            }
-        }
-
         @Widget(title = "Use default AWS managed key", description = """
                 If SSE-KMS is selected as the SSE method, then this option specifies whether or not to encrypt data
                 with the default AWS managed CMK.
@@ -286,7 +277,7 @@ abstract class AbstractS3ConnectorNodeParameters implements NodeParameters {
                 <tt>kms:DescribeKey</tt> and optionally <tt>kms:ListAliases</tt>).
                 """)
         @Persist(configKey = S3ConnectorNodeSettings.KEY_SSE_KMS_KEY_ID)
-        @Effect(predicate = SseEnabledAndNotUseAwsManagedKeyRef.class, type = EffectType.SHOW)
+        @Effect(predicate = UseAwsManagedKeyRef.class, type = EffectType.HIDE)
         @Modification.WidgetReference(KmsKeyIdModeRef.class)
         String m_kmsKeyId = "";
 
@@ -322,24 +313,21 @@ abstract class AbstractS3ConnectorNodeParameters implements NodeParameters {
         static final class SettingsKeySourceRef implements EffectPredicateProvider {
             @Override
             public EffectPredicate init(final PredicateInitializer i) {
-                return i.getPredicate(SseEnabledAndCustomerProvidedRef.class)
-                    .and(i.getEnum(CustomerKeySourceRef.class).isOneOf(CustomerKeySource.SETTINGS));
+                return i.getEnum(CustomerKeySourceRef.class).isOneOf(CustomerKeySource.SETTINGS);
             }
         }
 
         static final class CredentialVarSourceRef implements EffectPredicateProvider {
             @Override
             public EffectPredicate init(final PredicateInitializer i) {
-                return i.getPredicate(SseEnabledAndCustomerProvidedRef.class)
-                    .and(i.getEnum(CustomerKeySourceRef.class).isOneOf(CustomerKeySource.CREDENTIAL_VAR));
+                return i.getEnum(CustomerKeySourceRef.class).isOneOf(CustomerKeySource.CREDENTIAL_VAR);
             }
         }
 
         static final class FileSourceRef implements EffectPredicateProvider {
             @Override
             public EffectPredicate init(final PredicateInitializer i) {
-                return i.getPredicate(SseEnabledAndCustomerProvidedRef.class)
-                    .and(i.getEnum(CustomerKeySourceRef.class).isOneOf(CustomerKeySource.FILE));
+                return i.getEnum(CustomerKeySourceRef.class).isOneOf(CustomerKeySource.FILE);
             }
         }
 
