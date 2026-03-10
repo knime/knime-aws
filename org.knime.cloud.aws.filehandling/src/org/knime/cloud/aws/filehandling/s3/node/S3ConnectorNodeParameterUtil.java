@@ -55,6 +55,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.knime.cloud.aws.filehandling.s3.AwsUtils;
 import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig.SSEMode;
 import org.knime.cloud.aws.filehandling.s3.node.AbstractS3ConnectorNodeParameters.KmsKeySettings;
@@ -66,6 +67,7 @@ import org.knime.node.parameters.widget.message.TextMessage;
 import org.knime.node.parameters.widget.message.TextMessage.MessageType;
 
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.kms.model.AliasListEntry;
@@ -127,15 +129,27 @@ final class S3ConnectorNodeParameterUtil {
                     MessageType.ERROR), //
                 Collections.emptyList());
         } catch (Exception e) { // NOSONAR
-            // Other errors
-            logger.debug("Error fetching KMS keys: " + e.getMessage(), e);
+            return handleUncategorizedError(e, logger);
+        }
+    }
+
+    private static MessageAndData<List<StringChoice>> handleUncategorizedError(final Exception e,
+        final NodeLogger logger) {
+        if (e instanceof SdkClientException sdkClientException
+            && Strings.CS.startsWith(sdkClientException.getMessage(), "Unable to load credentials")) {
             return new MessageAndData<>( //
                 new TextMessage.Message("Error retrieving KMS keys", //
-                    "An unexpected error occurred.\nDetails: " //
-                        + StringUtils.defaultIfBlank(e.getMessage(), e.getClass().getSimpleName()), //
+                    "Invalid or empty credentials", //
                     MessageType.ERROR), //
                 Collections.emptyList());
         }
+        // Log uncategorized errors and refer to log in message
+        logger.error("Error fetching KMS keys: " + e.getMessage(), e);
+        return new MessageAndData<>( //
+            new TextMessage.Message("Error retrieving KMS keys", //
+                "An unexpected error occurred. See log for details", //
+                MessageType.ERROR), //
+            Collections.emptyList());
     }
 
     /**
