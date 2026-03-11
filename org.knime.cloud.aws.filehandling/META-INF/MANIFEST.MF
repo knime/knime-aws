@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Amazon S3 Filehandling
 Bundle-SymbolicName: org.knime.cloud.aws.filehandling;singleton:=true
-Bundle-Version: 5.11.0.qualifier
+Bundle-Version: 5.12.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-Vendor: KNIME AG, Zurich, Switzerland
 Require-Bundle: org.apache.commons.lang3;bundle-version="[3.18.0,4.0.0)",
