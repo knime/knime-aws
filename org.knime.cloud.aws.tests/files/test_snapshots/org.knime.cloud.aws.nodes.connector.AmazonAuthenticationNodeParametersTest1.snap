@@ -87,7 +87,7 @@
                   "title" : "Kerberos"
                 } ],
                 "title" : "Authentication",
-                "description" : "Method for authentication <br/><b>Use credentials</b><br/>Authenticate with Access Key ID and Secret Access Key stored in a credentials flow variable.<br/><b>Access Key ID and Secret Access Key</b><br/>Access Key ID and Secret Access Key based authentication.<br/><b>Default Credential Provider Chain</b><br/>Use the Default Credential Provider Chain for authentication.<br/><b>Anonymous Credentials</b><br/>Use anonymous credentials to make anonymous requests to an Amazon service<br/>",
+                "description" : "Method for authentication<br/><ul><li><b>Use credentials:</b> Authenticate with Access Key ID and Secret Access Key stored in a credentials flow variable.<br/></li><li><b>Access Key ID and Secret Access Key:</b> Access Key ID and Secret Access Key based authentication.<br/></li><li><b>Default Credential Provider Chain:</b> Use the Default Credential Provider Chain for authentication.<br/></li><li><b>Anonymous Credentials:</b> Use anonymous credentials to make anonymous requests to an Amazon service<br/></li></ul>",
                 "default" : "NONE"
               }
             },
