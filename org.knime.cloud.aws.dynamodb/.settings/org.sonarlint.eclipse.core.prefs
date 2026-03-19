@@ -2,6 +2,6 @@ autoEnabled=true
 bindingSuggestionsDisabled=false
 eclipse.preferences.version=1
 idePrefixKey=
-projectKey=KNIME_knime-aws
+projectKey=knime_knime-aws
 serverId=SonarCloud
 sqPrefixKey=org.knime.cloud.aws.dynamodb
