@@ -103,6 +103,8 @@ class S3ConnectorNodeSettings {
     private static final boolean DEFAULT_SSE_KMS_USE_AWS_MANAGED = true;
 
     private static final String DEFAULT_SSE_KMS_KEY_ID = "";
+    private static final String DEFAULT_SSE_KMS_KEY_ID_MANUALLY = "";
+    private static final boolean DEFAULT_SSE_KMS_KEY_ID_IS_SET_MANUALLY = false;
 
     private static final CustomerKeySource DEFAULT_CUSTOMER_KEY_SOURCE = CustomerKeySource.SETTINGS;
 
@@ -124,6 +126,9 @@ class S3ConnectorNodeSettings {
 
     static final String KEY_SSE_KMS_KEY_ID = "sseKmsKeyId";
 
+    static final String KEY_SSE_KMS_KEY_ID_MANUALLY = "sseKmsKeyIdManually";
+    static final String KEY_SSE_KMS_KEY_ID_IS_SET_MANUALLY = "sseKmsKeyIdIsSetManually";
+
     static final String KEY_SSE_CUSTOMER_KEY_SOURCE = "sseCustomerKeySource";
 
     static final String KEY_SSE_CUSTOMER_KEY = "sseCustomerKey";
@@ -144,7 +149,11 @@ class S3ConnectorNodeSettings {
 
     private final SettingsModelBoolean m_sseKmsUseAwsManaged;
 
+    private final SettingsModelBoolean m_sseKmsKeyIdIsSetManually;
+
     private final SettingsModelString m_sseKmsKeyId;
+
+    private final SettingsModelString m_sseKmsKeyIdManually;
 
     private CustomerKeySource m_customerKeySource;
 
@@ -173,6 +182,9 @@ class S3ConnectorNodeSettings {
         m_sseMode = new SettingsModelString(KEY_SSE_MODE, DEFAULT_SSE_MODE);
         m_sseKmsUseAwsManaged = new SettingsModelBoolean(KEY_SSE_KMS_USE_AWS_MANAGED, true);
         m_sseKmsKeyId = new SettingsModelString(KEY_SSE_KMS_KEY_ID, DEFAULT_SSE_KMS_KEY_ID);
+        m_sseKmsKeyIdManually = new SettingsModelString(KEY_SSE_KMS_KEY_ID_MANUALLY, DEFAULT_SSE_KMS_KEY_ID_MANUALLY);
+        m_sseKmsKeyIdIsSetManually = new SettingsModelBoolean(KEY_SSE_KMS_KEY_ID_IS_SET_MANUALLY,
+            DEFAULT_SSE_KMS_KEY_ID_IS_SET_MANUALLY);
 
         m_customerKeySource = DEFAULT_CUSTOMER_KEY_SOURCE;
         m_customerKey = new SettingsModelString(KEY_SSE_CUSTOMER_KEY, DEFAULT_CUSTOMER_KEY);
@@ -194,7 +206,10 @@ class S3ConnectorNodeSettings {
     private void updateEnabledness() {
         m_sseMode.setEnabled(isSseEnabled());
         m_sseKmsUseAwsManaged.setEnabled(isSseEnabled());
-        m_sseKmsKeyId.setEnabled(isSseEnabled() && sseKmsUseAwsManaged());
+        final var sseKeyRequired = isSseEnabled() && !sseKmsUseAwsManaged();
+        m_sseKmsKeyIdIsSetManually.setEnabled(sseKeyRequired);
+        m_sseKmsKeyId.setEnabled(sseKeyRequired && !isSseKeySetManually());
+        m_sseKmsKeyIdManually.setEnabled(sseKeyRequired && isSseKeySetManually());
     }
 
     /**
@@ -253,6 +268,10 @@ class S3ConnectorNodeSettings {
         return m_sseEnabled.getBooleanValue();
     }
 
+    boolean isSseKeySetManually() {
+        return m_sseKmsKeyIdIsSetManually.getBooleanValue();
+    }
+
     /**
      * @return the sseMode model
      */
@@ -292,6 +311,9 @@ class S3ConnectorNodeSettings {
      * @return the kmsKeyId
      */
     public String getKmsKeyId() {
+        if (isSseKeySetManually()) {
+            return m_sseKmsKeyIdManually.getStringValue();
+        }
         return m_sseKmsKeyId.getStringValue();
     }
 
@@ -426,6 +448,8 @@ class S3ConnectorNodeSettings {
         m_sseMode.saveSettingsTo(settings);
         m_sseKmsUseAwsManaged.saveSettingsTo(settings);
         m_sseKmsKeyId.saveSettingsTo(settings);
+        m_sseKmsKeyIdManually.saveSettingsTo(settings);
+        m_sseKmsKeyIdIsSetManually.saveSettingsTo(settings);
         settings.addString(KEY_SSE_CUSTOMER_KEY_SOURCE, m_customerKeySource.getKey());
         m_customerKey.saveSettingsTo(settings);
         m_customerKeyVar.saveSettingsTo(settings);
@@ -481,6 +505,12 @@ class S3ConnectorNodeSettings {
         }
         if (settings.containsKey(KEY_SSE_KMS_KEY_ID)) {
             m_sseKmsKeyId.validateSettings(settings);
+        }
+        if (settings.containsKey(KEY_SSE_KMS_KEY_ID_MANUALLY)) {
+            m_sseKmsKeyIdManually.validateSettings(settings);
+        }
+        if (settings.containsKey(KEY_SSE_KMS_KEY_ID_IS_SET_MANUALLY)) {
+            m_sseKmsKeyIdIsSetManually.validateSettings(settings);
         }
         if (settings.containsKey(KEY_SSE_CUSTOMER_KEY)) {
             m_customerKey.validateSettings(settings);
@@ -551,11 +581,17 @@ class S3ConnectorNodeSettings {
             m_sseMode.loadSettingsFrom(settings);
             m_sseKmsUseAwsManaged.loadSettingsFrom(settings);
             m_sseKmsKeyId.loadSettingsFrom(settings);
+            if (settings.containsKey(KEY_SSE_KMS_KEY_ID_IS_SET_MANUALLY)) {
+                m_sseKmsKeyIdIsSetManually.loadSettingsFrom(settings);
+                m_sseKmsKeyIdManually.loadSettingsFrom(settings);
+            }
         } else {
             m_sseEnabled.setBooleanValue(DEFAULT_SSE_ENABLED);
             m_sseMode.setStringValue(DEFAULT_SSE_MODE);
             m_sseKmsUseAwsManaged.setBooleanValue(DEFAULT_SSE_KMS_USE_AWS_MANAGED);
             m_sseKmsKeyId.setStringValue(DEFAULT_SSE_KMS_KEY_ID);
+            m_sseKmsKeyIdIsSetManually.setBooleanValue(DEFAULT_SSE_KMS_KEY_ID_IS_SET_MANUALLY);
+            m_sseKmsKeyIdManually.setStringValue(DEFAULT_SSE_KMS_KEY_ID_MANUALLY);
         }
         if (settings.containsKey(KEY_SSE_CUSTOMER_KEY)) {
             m_customerKey.loadSettingsFrom(settings);

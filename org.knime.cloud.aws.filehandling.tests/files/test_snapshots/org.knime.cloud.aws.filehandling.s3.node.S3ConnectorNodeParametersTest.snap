@@ -8,7 +8,11 @@
       "sseMode" : "S3",
       "kmsKeySettings" : {
         "useAwsManagedKey" : true,
-        "kmsKeyId" : ""
+        "kmsKeyId" : {
+          "mode" : "CHOOSE",
+          "kmsKeyId" : "",
+          "kmsKeyIdManually" : ""
+        }
       },
       "customerKeySettings" : {
         "customerKeySource" : "SETTINGS",
@@ -115,10 +119,38 @@
             "type" : "object",
             "properties" : {
               "kmsKeyId" : {
-                "type" : "string",
-                "title" : "KMS key id",
-                "description" : "If SSE-KMS is selected as the SSE method and the default AWS managed CMK should <b>not</b> be used,\nthen this option allows to choose the KMS key with which to encrypt data written to S3. The suggestions\ndropdown fetches the list of available keys (requires permissions <tt>kms:ListKeys</tt>,\n<tt>kms:DescribeKey</tt> and optionally <tt>kms:ListAliases</tt>).\n",
-                "default" : ""
+                "type" : "object",
+                "properties" : {
+                  "kmsKeyId" : {
+                    "type" : "string",
+                    "title" : "KMS key id",
+                    "description" : "Choose the KMS key to use for encryption.\n",
+                    "default" : ""
+                  },
+                  "kmsKeyIdManually" : {
+                    "type" : "string",
+                    "title" : "KMS key id",
+                    "description" : "Enter a KMS key to use for encryption.\n",
+                    "default" : ""
+                  },
+                  "mode" : {
+                    "oneOf" : [ {
+                      "const" : "CHOOSE",
+                      "title" : "Choose available key"
+                    }, {
+                      "const" : "ENTER_MANUALLY",
+                      "title" : "Enter manually"
+                    } ],
+                    "title" : "KMS key id mode",
+                    "description" : "Determines how the KMS key id should be selected.\n\n<ul>\n<li><b>Choose available key</b>: Choose the KMS key from a dropdown with suggestions fetched from AWS. Requires permissions <tt>kms:ListKeys</tt>, <tt>kms:DescribeKey</tt> and optionally <tt>kms:ListAliases</tt>.</li>\n<li><b>Enter manually</b>: Enter the KMS key id directly into a text field.</li>\n</ul>",
+                    "default" : "CHOOSE"
+                  }
+                },
+                "default" : {
+                  "mode" : "CHOOSE",
+                  "kmsKeyId" : "",
+                  "kmsKeyIdManually" : ""
+                }
               },
               "useAwsManagedKey" : {
                 "type" : "boolean",
@@ -129,7 +161,11 @@
             },
             "default" : {
               "useAwsManagedKey" : true,
-              "kmsKeyId" : ""
+              "kmsKeyId" : {
+                "mode" : "CHOOSE",
+                "kmsKeyId" : "",
+                "kmsKeyIdManually" : ""
+              }
             }
           },
           "normalizePaths" : {
@@ -310,13 +346,11 @@
         },
         "elements" : [ {
           "type" : "Control",
-          "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId",
+          "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId/properties/mode",
           "options" : {
             "isAdvanced" : true,
-            "format" : "dropDown",
-            "allowNewValue" : true
+            "format" : "valueSwitch"
           },
-          "providedOptions" : [ "possibleValues" ],
           "rule" : {
             "effect" : "HIDE",
             "condition" : {
@@ -326,6 +360,111 @@
               }
             }
           }
+        } ]
+      }, {
+        "type" : "MultiRuleWrapper",
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "scope" : "#/properties/model/properties/sseEnabled",
+              "schema" : {
+                "const" : true
+              }
+            }, {
+              "scope" : "#/properties/model/properties/sseMode",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "KMS"
+                } ]
+              }
+            } ]
+          }
+        },
+        "elements" : [ {
+          "type" : "MultiRuleWrapper",
+          "rule" : {
+            "effect" : "HIDE",
+            "condition" : {
+              "scope" : "#/properties/model/properties/kmsKeySettings/properties/useAwsManagedKey",
+              "schema" : {
+                "const" : true
+              }
+            }
+          },
+          "elements" : [ {
+            "type" : "Control",
+            "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId/properties/kmsKeyId",
+            "options" : {
+              "isAdvanced" : true,
+              "format" : "dropDown"
+            },
+            "providedOptions" : [ "possibleValues" ],
+            "rule" : {
+              "effect" : "SHOW",
+              "condition" : {
+                "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId/properties/mode",
+                "schema" : {
+                  "oneOf" : [ {
+                    "const" : "CHOOSE"
+                  } ]
+                }
+              }
+            }
+          } ]
+        } ]
+      }, {
+        "type" : "MultiRuleWrapper",
+        "rule" : {
+          "effect" : "SHOW",
+          "condition" : {
+            "type" : "AND",
+            "conditions" : [ {
+              "scope" : "#/properties/model/properties/sseEnabled",
+              "schema" : {
+                "const" : true
+              }
+            }, {
+              "scope" : "#/properties/model/properties/sseMode",
+              "schema" : {
+                "oneOf" : [ {
+                  "const" : "KMS"
+                } ]
+              }
+            } ]
+          }
+        },
+        "elements" : [ {
+          "type" : "MultiRuleWrapper",
+          "rule" : {
+            "effect" : "HIDE",
+            "condition" : {
+              "scope" : "#/properties/model/properties/kmsKeySettings/properties/useAwsManagedKey",
+              "schema" : {
+                "const" : true
+              }
+            }
+          },
+          "elements" : [ {
+            "type" : "Control",
+            "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId/properties/kmsKeyIdManually",
+            "options" : {
+              "placeholder" : "e.g. alias/aws/workspaces or 1234abcd-12ab-34cd-56ef-1234567890ab",
+              "isAdvanced" : true
+            },
+            "rule" : {
+              "effect" : "HIDE",
+              "condition" : {
+                "scope" : "#/properties/model/properties/kmsKeySettings/properties/kmsKeyId/properties/mode",
+                "schema" : {
+                  "oneOf" : [ {
+                    "const" : "CHOOSE"
+                  } ]
+                }
+              }
+            }
+          } ]
         } ]
       }, {
         "type" : "Control",
@@ -510,7 +649,19 @@
                 "configKey" : "sseKmsUseAwsManaged"
               },
               "kmsKeyId" : {
-                "configKey" : "sseKmsKeyId"
+                "type" : "object",
+                "properties" : {
+                  "mode" : {
+                    "configPaths" : [ [ "sseKmsKeyIdIsSetManually" ] ]
+                  },
+                  "kmsKeyId" : {
+                    "configKey" : "sseKmsKeyId"
+                  },
+                  "kmsKeyIdManually" : {
+                    "configKey" : "sseKmsKeyIdManually"
+                  }
+                },
+                "propertiesRoute" : [ ".." ]
               }
             },
             "propertiesRoute" : [ ".." ]
