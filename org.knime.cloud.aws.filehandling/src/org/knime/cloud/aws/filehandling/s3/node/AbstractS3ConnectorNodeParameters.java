@@ -58,6 +58,7 @@ import org.knime.cloud.aws.filehandling.s3.AwsUtils;
 import org.knime.cloud.aws.filehandling.s3.fs.S3FileSystem;
 import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig;
 import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig.SSEMode;
+import org.knime.cloud.aws.filehandling.s3.node.AbstractS3ConnectorNodeParameters.KmsKeySettings.UseAwsManagedKeyRef;
 import org.knime.cloud.aws.filehandling.s3.node.S3ConnectorNodeSettings.CustomerKeySource;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
@@ -70,6 +71,8 @@ import org.knime.core.webui.node.dialog.defaultdialog.internal.file.FileSelectio
 import org.knime.core.webui.node.dialog.defaultdialog.internal.file.LegacyReaderFileSelectionPersistor;
 import org.knime.core.webui.node.dialog.defaultdialog.internal.file.SingleFileSelectionMode;
 import org.knime.core.webui.node.dialog.defaultdialog.internal.widget.PersistWithin;
+import org.knime.core.webui.node.dialog.defaultdialog.internal.widget.PersistWithin.PersistEmbedded;
+import org.knime.core.webui.node.dialog.defaultdialog.internal.widget.WidgetInternal;
 import org.knime.core.webui.node.dialog.defaultdialog.util.updates.StateComputationFailureException;
 import org.knime.core.webui.node.dialog.defaultdialog.widget.Modification;
 import org.knime.node.parameters.Advanced;
@@ -85,6 +88,7 @@ import org.knime.node.parameters.persistence.NodeParametersPersistor;
 import org.knime.node.parameters.persistence.Persist;
 import org.knime.node.parameters.persistence.Persistable;
 import org.knime.node.parameters.persistence.Persistor;
+import org.knime.node.parameters.persistence.legacy.EnumBooleanPersistor;
 import org.knime.node.parameters.updates.Effect;
 import org.knime.node.parameters.updates.Effect.EffectType;
 import org.knime.node.parameters.updates.EffectPredicate;
@@ -95,11 +99,14 @@ import org.knime.node.parameters.updates.ValueProvider;
 import org.knime.node.parameters.updates.ValueReference;
 import org.knime.node.parameters.updates.util.BooleanReference;
 import org.knime.node.parameters.widget.choices.ChoicesProvider;
+import org.knime.node.parameters.widget.choices.Label;
 import org.knime.node.parameters.widget.choices.RadioButtonsWidget;
 import org.knime.node.parameters.widget.choices.StringChoicesProvider;
+import org.knime.node.parameters.widget.choices.ValueSwitchWidget;
 import org.knime.node.parameters.widget.message.TextMessage;
 import org.knime.node.parameters.widget.number.NumberInputWidget;
 import org.knime.node.parameters.widget.number.NumberInputWidgetValidation.MinValidation.IsNonNegativeValidation;
+import org.knime.node.parameters.widget.text.TextInputWidget;
 
 /**
  * Abstract base {@link NodeParameters} class for S3 connector node parameters.
@@ -270,18 +277,86 @@ abstract class AbstractS3ConnectorNodeParameters implements NodeParameters {
         @ValueReference(UseAwsManagedKeyRef.class)
         boolean m_useAwsManagedKey = true;
 
+        @Effect(predicate = UseAwsManagedKeyRef.class, type = EffectType.HIDE)
+        @PersistEmbedded
+        KMSKeyIdParameters m_kmsKeyId = new KMSKeyIdParameters();
+
+        public String getKMSKeyId() {
+            return m_kmsKeyId.getId();
+        }
+
+
+
+    }
+
+    @LoadDefaultsForAbsentFields
+    static final class KMSKeyIdParameters implements NodeParameters {
+
+        enum KmsKeyIdMode {
+                @Label(value = "Choose available key",
+                    description = "Choose the KMS key from a dropdown with suggestions fetched from AWS. Requires permissions "
+                        + "<tt>kms:ListKeys</tt>, <tt>kms:DescribeKey</tt> and optionally <tt>kms:ListAliases</tt>.")
+                CHOOSE, //
+                @Label(value = "Enter manually", description = "Enter the KMS key id directly into a text field.")
+                ENTER_MANUALLY;
+
+                interface Ref extends ParameterReference<KmsKeyIdMode> {
+                }
+
+                static final class IsChoose implements EffectPredicateProvider {
+                    @Override
+                    public EffectPredicate init(final PredicateInitializer i) {
+                        return i.getEnum(Ref.class).isOneOf(CHOOSE);
+                    }
+                }
+        }
+
+
+
+        @Widget(title = "KMS key id mode", description = """
+                Determines how the KMS key id should be selected.
+                """)
+        @Persistor(KmsKeyIdModePersistor.class)
+        @ValueSwitchWidget
+        @ValueReference(KmsKeyIdMode.Ref.class)
+        KmsKeyIdMode m_mode = KmsKeyIdMode.CHOOSE;
+
+        static final class KmsKeyIdModePersistor extends EnumBooleanPersistor<KmsKeyIdMode> {
+
+            protected KmsKeyIdModePersistor() {
+                super(S3ConnectorNodeSettings.KEY_SSE_KMS_KEY_ID_IS_SET_MANUALLY, KmsKeyIdMode.class,
+                    KmsKeyIdMode.ENTER_MANUALLY);
+            }
+
+        }
+
         @Widget(title = "KMS key id", description = """
-                If SSE-KMS is selected as the SSE method and the default AWS managed CMK should <b>not</b> be used,
-                then this option allows to choose the KMS key with which to encrypt data written to S3. The suggestions
-                dropdown fetches the list of available keys (requires permissions <tt>kms:ListKeys</tt>,
-                <tt>kms:DescribeKey</tt> and optionally <tt>kms:ListAliases</tt>).
+                Choose the KMS key to use for encryption.
                 """)
         @Persist(configKey = S3ConnectorNodeSettings.KEY_SSE_KMS_KEY_ID)
         @Effect(predicate = UseAwsManagedKeyRef.class, type = EffectType.HIDE)
-        @Modification.WidgetReference(KmsKeyIdModeRef.class)
+        @Modification.WidgetReference(KmsKeyIdRef.class)
+        @Effect(predicate = KmsKeyIdMode.IsChoose.class, type = EffectType.SHOW)
         String m_kmsKeyId = "";
 
-        static final class KmsKeyIdModeRef implements ParameterReference<String>, Modification.Reference {
+        static final class KmsKeyIdRef implements ParameterReference<String>, Modification.Reference {
+        }
+
+
+        @Widget(title = "KMS key id", description = """
+                Enter a KMS key to use for encryption.
+                """)
+        @WidgetInternal(hideControlInNodeDescription = "Visually it appears as the same component as the one above.")
+        @Persist(configKey = S3ConnectorNodeSettings.KEY_SSE_KMS_KEY_ID_MANUALLY)
+        @Effect(predicate = KmsKeyIdMode.IsChoose.class, type = EffectType.HIDE)
+        @TextInputWidget(placeholder = "e.g. alias/aws/workspaces or 1234abcd-12ab-34cd-56ef-1234567890ab")
+        String m_kmsKeyIdManually = "";
+
+        String getId() {
+            if (m_mode == KmsKeyIdMode.ENTER_MANUALLY) {
+                return m_kmsKeyIdManually;
+            }
+            return m_kmsKeyId;
         }
 
     }
@@ -438,7 +513,7 @@ abstract class AbstractS3ConnectorNodeParameters implements NodeParameters {
     public void validate() throws InvalidSettingsException {
         if (m_sseEnabled) {
             if (m_sseMode == SSEMode.KMS && !m_kmsKeySettings.m_useAwsManagedKey) {
-                if (StringUtils.isBlank(m_kmsKeySettings.m_kmsKeyId)) {
+                if (StringUtils.isBlank(m_kmsKeySettings.getKMSKeyId())) {
                     throw new InvalidSettingsException("SSE-KMS key id or AWS default key required.");
                 }
             } else if (m_sseMode == SSEMode.CUSTOMER_PROVIDED

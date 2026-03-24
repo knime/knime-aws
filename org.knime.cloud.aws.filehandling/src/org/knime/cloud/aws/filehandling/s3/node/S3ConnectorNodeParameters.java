@@ -56,7 +56,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.knime.cloud.aws.filehandling.s3.fs.S3FSConnection;
 import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig;
 import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig.SSEMode;
-import org.knime.cloud.aws.filehandling.s3.node.AbstractS3ConnectorNodeParameters.KmsKeySettings.KmsKeyIdModeRef;
+import org.knime.cloud.aws.filehandling.s3.node.AbstractS3ConnectorNodeParameters.KMSKeyIdParameters.KmsKeyIdRef;
 import org.knime.cloud.aws.filehandling.s3.node.S3ConnectorNodeParameters.S3ConnectorModification;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
 import org.knime.cloud.core.util.port.CloudConnectionInformationPortObjectSpec;
@@ -69,9 +69,9 @@ import org.knime.core.webui.node.dialog.defaultdialog.widget.Modification.Widget
 import org.knime.node.parameters.NodeParametersInput;
 import org.knime.node.parameters.migration.LoadDefaultsForAbsentFields;
 import org.knime.node.parameters.updates.StateProvider;
+import org.knime.node.parameters.widget.choices.ChoicesProvider;
 import org.knime.node.parameters.widget.choices.StringChoice;
 import org.knime.node.parameters.widget.choices.StringChoicesProvider;
-import org.knime.node.parameters.widget.choices.SuggestionsProvider;
 import org.knime.node.parameters.widget.message.TextMessage;
 import org.knime.node.parameters.widget.message.TextMessage.Message;
 import org.knime.node.parameters.widget.message.TextMessage.MessageType;
@@ -96,7 +96,7 @@ final class S3ConnectorNodeParameters extends AbstractS3ConnectorNodeParameters 
             group.find(InfoMessageRef.class).addAnnotation(TextMessage.class)
                 .withProperty("value", S3InfoMessageProvider.class)
                 .modify();
-            group.find(KmsKeyIdModeRef.class).addAnnotation(SuggestionsProvider.class)
+            group.find(KmsKeyIdRef.class).addAnnotation(ChoicesProvider.class)
                 .withProperty("value", KmsKeyChoicesProvider.class)
                 .modify();
             group.find(WorkingDirectoryModRef.class).addAnnotation(WithCustomFileSystem.class)
@@ -224,8 +224,9 @@ final class S3ConnectorNodeParameters extends AbstractS3ConnectorNodeParameters 
 
                 if (sseMode == SSEMode.KMS && kmsKeySettings != null) {
                     config.setSseKmsUseAwsManaged(kmsKeySettings.m_useAwsManagedKey);
-                    if (!kmsKeySettings.m_useAwsManagedKey && kmsKeySettings.m_kmsKeyId != null) {
-                        config.setSseKmsKeyId(kmsKeySettings.m_kmsKeyId);
+                    String kmsKeyId = kmsKeySettings.getKMSKeyId();
+                    if (!kmsKeySettings.m_useAwsManagedKey && kmsKeyId != null) {
+                        config.setSseKmsKeyId(kmsKeyId);
                     }
                 }
                 // Note: SSE-C customer key handling is more complex (requires credentials provider)
