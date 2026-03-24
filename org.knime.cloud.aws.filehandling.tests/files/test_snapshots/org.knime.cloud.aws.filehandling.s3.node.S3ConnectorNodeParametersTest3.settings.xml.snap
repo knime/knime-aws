@@ -6,7 +6,9 @@
     <entry key="sseEnabled" type="xboolean" value="true"/>
     <entry key="sseMode" type="xstring" value="SSE-C"/>
     <entry key="sseKmsUseAwsManaged" type="xboolean" value="false"/>
+    <entry key="sseKmsKeyIdIsSetManually" type="xboolean" value="false"/>
     <entry key="sseKmsKeyId" type="xstring" value="c7cd43e0-b031-41c0-90e0-847905d03d25"/>
+    <entry key="sseKmsKeyIdManually" type="xstring" value=""/>
     <entry key="sseCustomerKeySource" type="xstring" value="settings"/>
     <entry key="sseCustomerKey" type="xstring" value="YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE="/>
     <entry key="sseCustomerKeyVar" type="xstring" value=""/>
