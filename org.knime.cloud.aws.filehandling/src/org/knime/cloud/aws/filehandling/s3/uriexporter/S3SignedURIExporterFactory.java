@@ -52,10 +52,12 @@ import java.time.Duration;
 
 import org.knime.cloud.core.filehandling.signedurl.SignedUrlConfig;
 import org.knime.cloud.core.filehandling.signedurl.SignedUrlPanel;
+import org.knime.cloud.core.filehandling.signedurl.SignedUrlSettingsParameters;
 import org.knime.filehandling.core.connections.uriexport.URIExporter;
 import org.knime.filehandling.core.connections.uriexport.URIExporterConfig;
 import org.knime.filehandling.core.connections.uriexport.URIExporterFactory;
 import org.knime.filehandling.core.connections.uriexport.URIExporterID;
+import org.knime.filehandling.core.connections.uriexport.URIExporterSettingsParameters;
 import org.knime.filehandling.core.connections.uriexport.base.BaseURIExporterFactory;
 import org.knime.filehandling.core.connections.uriexport.base.BaseURIExporterMetaInfo;
 
@@ -103,5 +105,10 @@ public class S3SignedURIExporterFactory extends BaseURIExporterFactory {
     @Override
     public final URIExporter createExporter(final URIExporterConfig config) {
         return new S3SignedURIExporter((SignedUrlConfig)config);
+    }
+
+    @Override
+    public Class<? extends URIExporterSettingsParameters> getNodeParametersClass() {
+        return SignedUrlSettingsParameters.class;
     }
 }
