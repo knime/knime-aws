@@ -57,7 +57,7 @@ import java.util.function.Supplier;
 import org.knime.cloud.aws.filehandling.s3.fs.S3FSConnection;
 import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig;
 import org.knime.cloud.aws.filehandling.s3.fs.api.S3FSConnectionConfig.SSEMode;
-import org.knime.cloud.aws.filehandling.s3.node.AbstractS3ConnectorNodeParameters.KMSKeyIdParameters.KmsKeyIdModeRef;
+import org.knime.cloud.aws.filehandling.s3.node.AbstractS3ConnectorNodeParameters.KMSKeyIdParameters.KmsKeyIdRef;
 import org.knime.cloud.aws.filehandling.s3.node.S3GenericConnectorNodeParameters.AuthenticationParameters.AuthenticationMethod;
 import org.knime.cloud.aws.filehandling.s3.node.S3GenericConnectorNodeParameters.GenericS3ConnectorModification;
 import org.knime.cloud.core.util.port.CloudConnectionInformation;
@@ -126,7 +126,7 @@ final class S3GenericConnectorNodeParameters extends AbstractS3ConnectorNodePara
             group.find(InfoMessageRef.class).addAnnotation(TextMessage.class)
                 .withProperty("value", S3InfoMessageProvider.class)
                 .modify();
-            group.find(KmsKeyIdModeRef.class).addAnnotation(ChoicesProvider.class)
+            group.find(KmsKeyIdRef.class).addAnnotation(ChoicesProvider.class)
                 .withProperty("value", KmsKeyChoicesProvider.class)
                 .modify();
             group.find(WorkingDirectoryModRef.class).addAnnotation(WithCustomFileSystem.class)
